@@ -55,8 +55,7 @@ class BacktestingEngine:
 
         self.interval: Interval = None
         self.days: int = 0
-        self.history_data: dict[tuple, BarData] = {}
-        self.dts: set[datetime] = set()
+        self.history_data: dict[tuple, BarData] = defaultdict({})
 
         self.limit_order_count: int = 0
         self.limit_orders: dict[str, OrderData] = {}
@@ -111,16 +110,16 @@ class BacktestingEngine:
 
         # Load history data of all symbols
         for vt_symbol in self.vt_symbols:
-            bars: list[BarData] = load_bar_data(
+            data: list[BarData] = load_bar_data(
                 vt_symbol,
                 self.interval,
-                start,
-                end
+                self.start,
+                self.end
             )
 
-            for bar in bars:
-                self.dts.add(bar.datetime)
-                self.history_data[(bar.datetime, vt_symbol)] = bar
+            for bar in data:
+                bars: dict[str, BarData] = self.history_data.setdefault(bar.datetime)
+                bars[bar.vt_symbol] = bar
 
             self.output(f"Bar data of {vt_symbol} loaded, total count: {len(bars)}.")
 
@@ -130,7 +129,7 @@ class BacktestingEngine:
         """Start backtesting"""
         self.strategy.on_init()
 
-        dts: list = list(self.dts)
+        dts: list = list(self.history_data.keys())
         dts.sort()
 
         # Initialize the strategy with the head part of data
@@ -509,36 +508,10 @@ class BacktestingEngine:
     def _new_bars(self, dt: datetime) -> None:
         """New bars update"""
         self.datetime = dt
-
-        bars: dict[str, BarData] = {}
-        for vt_symbol in self.vt_symbols:
-            bar: Optional[BarData] = self.history_data.get((dt, vt_symbol), None)
-
-            # Check if bar data can be got
-            if bar:
-                # Update for order crossing
-                self.bars[vt_symbol] = bar
-
-                # For pushing to strategy.on_bars
-                bars[vt_symbol] = bar
-            # If failed, use previous bar for backfill
-            elif vt_symbol in self.bars:
-                old_bar: BarData = self.bars[vt_symbol]
-
-                bar: BarData = BarData(
-                    symbol=old_bar.symbol,
-                    exchange=old_bar.exchange,
-                    datetime=dt,
-                    open_price=old_bar.close_price,
-                    high_price=old_bar.close_price,
-                    low_price=old_bar.close_price,
-                    close_price=old_bar.close_price,
-                    gateway_name=old_bar.gateway_name
-                )
-                self.bars[vt_symbol] = bar
+        self.bars: dict[str, BarData] = self.history_data[dt]
 
         self.cross_limit_order()
-        self.strategy.on_bars(bars)
+        self.strategy.on_bars(self.bars)
 
         if self.strategy.inited:
             self.update_daily_close(self.bars, dt)
