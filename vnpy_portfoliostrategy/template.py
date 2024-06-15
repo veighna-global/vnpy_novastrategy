@@ -42,9 +42,6 @@ class StrategyTemplate:
 
         self.active_orderids: set[str] = set()
 
-        # Generate variable name list
-        self.variables: list = ["inited", "trading", "pos_data"].extend(self.variables)
-
         # Update strategy setting
         self.update_setting(setting)
 
@@ -83,6 +80,9 @@ class StrategyTemplate:
             "vt_symbols": self.vt_symbols,
             "class_name": self.__class__.__name__,
             "author": self.author,
+            "inited": self.inited,
+            "trading": self.trading,
+            "pos_data": dict(self.pos_data)
             "parameters": self.get_parameters(),
             "variables": self.get_variables(),
         }
@@ -132,7 +132,7 @@ class StrategyTemplate:
 
         self.on_trade(trade)
 
-    def on_order(self, order: OrderData) -> None:
+    def update_order(self, order: OrderData) -> None:
         """Update active orderid set beforce calling on_order"""
         vt_orderid: str = order.vt_orderid
 
@@ -141,19 +141,19 @@ class StrategyTemplate:
 
         self.on_order(order)
 
-    def buy(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False) -> list[str]:
+    def buy(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send buy order"""
         return self.send_order(vt_symbol, Direction.LONG, Offset.OPEN, price, volume, lock, net)
 
-    def sell(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False) -> list[str]:
+    def sell(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send sell order"""
         return self.send_order(vt_symbol, Direction.SHORT, Offset.CLOSE, price, volume, lock, net)
 
-    def short(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False) -> list[str]:
+    def short(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send short order"""
         return self.send_order(vt_symbol, Direction.SHORT, Offset.OPEN, price, volume, lock, net)
 
-    def cover(self, vt_symbol: str, price: float, volume: float, lock: bool = False, net: bool = False) -> list[str]:
+    def cover(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send cover order"""
         return self.send_order(vt_symbol, Direction.LONG, Offset.CLOSE, price, volume, lock, net)
 
@@ -164,20 +164,23 @@ class StrategyTemplate:
         offset: Offset,
         price: float,
         volume: float,
-        lock: bool = False,
-        net: bool = False,
-    ) -> list[str]:
+    ) -> str:
         """Send new order"""
         if not self.trading:
-            return []
-            
-        vt_orderids: list = self.strategy_engine.send_order(
-            self, vt_symbol, direction, offset, price, volume, lock, net
+            return ""
+
+        vt_orderid: str = self.strategy_engine.send_order(
+            strategy=self,
+            vt_symbol=vt_symbol,
+            direction=direction,
+            offset=offset,
+            price=price,
+            volume=volume
         )
 
-        self.active_orderids.update(vt_orderids)
+        self.active_orderids.add(vt_orderid)
 
-        return vt_orderids
+        return vt_orderid
 
     def cancel_order(self, vt_orderid: str) -> None:
         """Cancel existing order"""
@@ -205,7 +208,7 @@ class StrategyTemplate:
         """Get size of a contract"""
         return self.strategy_engine.get_size(self, vt_symbol)
 
-    def load_bars(self, days: int, interval: Interval = Interval.MINUTE) -> None:
+    def load_bars(self, days: int, interval: Interval) -> None:
         """Load history data to init a strategy"""
         self.strategy_engine.load_bars(self, days, interval)
 
