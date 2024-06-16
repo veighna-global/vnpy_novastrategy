@@ -82,7 +82,7 @@ class StrategyTemplate:
             "author": self.author,
             "inited": self.inited,
             "trading": self.trading,
-            "pos_data": dict(self.pos_data)
+            "pos_data": dict(self.pos_data),
             "parameters": self.get_parameters(),
             "variables": self.get_variables(),
         }

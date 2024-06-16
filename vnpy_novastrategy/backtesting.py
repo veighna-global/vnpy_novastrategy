@@ -55,7 +55,7 @@ class BacktestingEngine:
 
         self.interval: Interval = None
         self.days: int = 0
-        self.history_data: dict[tuple, BarData] = defaultdict({})
+        self.history_data: dict[str, dict] = defaultdict(dict)
 
         self.limit_order_count: int = 0
         self.limit_orders: dict[str, OrderData] = {}
