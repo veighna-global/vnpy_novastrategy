@@ -15,7 +15,7 @@ from vnpy.trader.database import get_database, BaseDatabase
 from vnpy.trader.object import OrderData, TradeData, BarData
 from vnpy.trader.utility import round_to, extract_vt_symbol
 from vnpy.trader.optimize import (
-    Optimizationsetting,
+    OptimizationSetting,
     check_optimization_setting,
     run_bf_optimization,
     run_ga_optimization
@@ -426,7 +426,7 @@ class BacktestingEngine:
 
     def run_bf_optimization(
         self,
-        optimization_setting: Optimizationsetting,
+        optimization_setting: OptimizationSetting,
         output=True,
         max_workers: int = None
     ) -> list:
@@ -452,7 +452,7 @@ class BacktestingEngine:
 
     def run_ga_optimization(
         self,
-        optimization_setting: Optimizationsetting,
+        optimization_setting: OptimizationSetting,
         max_workers: int = None,
         ngen_size: int = 30,
         output=True

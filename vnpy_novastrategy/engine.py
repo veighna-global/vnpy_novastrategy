@@ -38,17 +38,14 @@ from vnpy.trader.database import BaseDatabase, get_database, DB_TZ
 
 from .base import (
     APP_NAME,
-    EVENT_PORTFOLIO_LOG,
-    EVENT_PORTFOLIO_STRATEGY,
-    EngineType
+    EVENT_NOVA_LOG,
+    EVENT_NOVA_STRATEGY
 )
 from .template import StrategyTemplate
 
 
 class StrategyEngine(BaseEngine):
     """Nova strategy engine"""
-
-    engine_type: EngineType = EngineType.LIVE
 
     setting_filename: str = "portfolio_strategy_setting.json"
     data_filename: str = "portfolio_strategy_data.json"
@@ -298,7 +295,7 @@ class StrategyEngine(BaseEngine):
                 value: Optional[object] = data.get(variables, None)
                 if value is None:
                     continue
-                setattr(strategy, name, value)                    
+                setattr(strategy, name, value)
 
         # Subscribe market data
         for vt_symbol in strategy.vt_symbols:
@@ -491,7 +488,7 @@ class StrategyEngine(BaseEngine):
     def put_strategy_event(self, strategy: StrategyTemplate) -> None:
         """Put event to update UI"""
         data: dict = strategy.get_data()
-        event: Event = Event(EVENT_PORTFOLIO_STRATEGY, data)
+        event: Event = Event(EVENT_NOVA_STRATEGY, data)
         self.event_engine.put(event)
 
     def write_log(self, msg: str, strategy: StrategyTemplate = None) -> None:
@@ -500,5 +497,5 @@ class StrategyEngine(BaseEngine):
             msg: str = f"{strategy.strategy_name}: {msg}"
 
         log: LogData = LogData(msg=msg, gateway_name=APP_NAME)
-        event: Event = Event(type=EVENT_PORTFOLIO_LOG, data=log)
+        event: Event = Event(type=EVENT_NOVA_LOG, data=log)
         self.event_engine.put(event)

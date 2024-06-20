@@ -1,12 +1,9 @@
-from copy import copy
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from collections import defaultdict
 
 from vnpy.trader.constant import Interval, Direction, Offset
 from vnpy.trader.object import BarData, TickData, OrderData, TradeData
 from vnpy.trader.utility import virtual
-
-from .base import EngineType
 
 if TYPE_CHECKING:
     from .engine import StrategyEngine
@@ -143,19 +140,19 @@ class StrategyTemplate:
 
     def buy(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send buy order"""
-        return self.send_order(vt_symbol, Direction.LONG, Offset.OPEN, price, volume, lock, net)
+        return self.send_order(vt_symbol, Direction.LONG, Offset.OPEN, price, volume)
 
     def sell(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send sell order"""
-        return self.send_order(vt_symbol, Direction.SHORT, Offset.CLOSE, price, volume, lock, net)
+        return self.send_order(vt_symbol, Direction.SHORT, Offset.CLOSE, price, volume)
 
     def short(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send short order"""
-        return self.send_order(vt_symbol, Direction.SHORT, Offset.OPEN, price, volume, lock, net)
+        return self.send_order(vt_symbol, Direction.SHORT, Offset.OPEN, price, volume)
 
     def cover(self, vt_symbol: str, price: float, volume: float) -> str:
         """Send cover order"""
-        return self.send_order(vt_symbol, Direction.LONG, Offset.CLOSE, price, volume, lock, net)
+        return self.send_order(vt_symbol, Direction.LONG, Offset.CLOSE, price, volume)
 
     def send_order(
         self,
