@@ -1,7 +1,16 @@
-from vnpy.event import Event, EventEngine
-from vnpy.trader.engine import MainEngine
-from vnpy.trader.ui import QtCore, QtGui, QtWidgets
-from vnpy.trader.ui.widget import (
+from qfluentwidgets import (
+    PushButton,
+    ComboBox,
+    BodyLabel,
+    LineEdit,
+    TableWidget,
+    ScrollArea,
+)
+
+from vnpy_evo.event import Event, EventEngine
+from vnpy_evo.trader.engine import MainEngine
+from vnpy_evo.trader.ui import QtCore, QtGui, QtWidgets
+from vnpy_evo.trader.ui.monitor import (
     MsgCell,
     TimeCell,
     BaseMonitor
@@ -39,21 +48,21 @@ class NovaStrategyManager(QtWidgets.QWidget):
         self.setWindowTitle("Nova Strategy")
 
         # Create widgets
-        self.class_combo: QtWidgets.QComboBox = QtWidgets.QComboBox()
+        self.class_combo: ComboBox = ComboBox()
 
-        add_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Add Strategy")
+        add_button: PushButton = PushButton("Add Strategy")
         add_button.clicked.connect(self.add_strategy)
 
-        init_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Initialize All")
+        init_button: PushButton = PushButton("Initialize All")
         init_button.clicked.connect(self.strategy_engine.init_all_strategies)
 
-        start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Start All")
+        start_button: PushButton = PushButton("Start All")
         start_button.clicked.connect(self.strategy_engine.start_all_strategies)
 
-        stop_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Stop All")
+        stop_button: PushButton = PushButton("Stop All")
         stop_button.clicked.connect(self.strategy_engine.stop_all_strategies)
 
-        clear_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Clear Logs")
+        clear_button: PushButton = PushButton("Clear Logs")
         clear_button.clicked.connect(self.clear_log)
 
         self.scroll_layout: QtWidgets.QVBoxLayout = QtWidgets.QVBoxLayout()
@@ -62,7 +71,7 @@ class NovaStrategyManager(QtWidgets.QWidget):
         scroll_widget: QtWidgets.QWidget = QtWidgets.QWidget()
         scroll_widget.setLayout(self.scroll_layout)
 
-        scroll_area: QtWidgets.QScrollArea = QtWidgets.QScrollArea()
+        scroll_area: ScrollArea = ScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(scroll_widget)
 
@@ -126,7 +135,7 @@ class NovaStrategyManager(QtWidgets.QWidget):
         editor: SettingEditor = SettingEditor(parameters, class_name=class_name)
         n: int = editor.exec_()
 
-        if n == editor.Accepted:
+        if n == editor.DialogCode.Accepted:
             setting: dict = editor.get_setting()
             vt_symbols: str = setting.pop("vt_symbols").split(",")
             strategy_name: str = setting.pop("strategy_name")
@@ -167,24 +176,24 @@ class StraetgyWidget(QtWidgets.QFrame):
     def init_ui(self) -> None:
         """初始化界面"""
         self.setFixedHeight(300)
-        self.setFrameShape(self.Box)
+        self.setFrameShape(self.Shape.Box)
         self.setLineWidth(1)
 
-        self.init_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Initialize")
+        self.init_button: PushButton = PushButton("Initialize")
         self.init_button.clicked.connect(self.init_strategy)
 
-        self.start_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Start")
+        self.start_button: PushButton = PushButton("Start")
         self.start_button.clicked.connect(self.start_strategy)
         self.start_button.setEnabled(False)
 
-        self.stop_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Stop")
+        self.stop_button: PushButton = PushButton("Stop")
         self.stop_button.clicked.connect(self.stop_strategy)
         self.stop_button.setEnabled(False)
 
-        self.edit_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Edit")
+        self.edit_button: PushButton = PushButton("Edit")
         self.edit_button.clicked.connect(self.edit_strategy)
 
-        self.remove_button: QtWidgets.QPushButton = QtWidgets.QPushButton("Remove")
+        self.remove_button: PushButton = PushButton("Remove")
         self.remove_button.clicked.connect(self.remove_strategy)
 
         strategy_name: str = self._data["strategy_name"]
@@ -192,7 +201,7 @@ class StraetgyWidget(QtWidgets.QFrame):
         author: str = self._data["author"]
 
         label_text: str = f"{strategy_name}  -  ({class_name} by {author})"
-        label: QtWidgets.QLabel = QtWidgets.QLabel(label_text)
+        label: BodyLabel = BodyLabel(label_text)
         label.setAlignment(QtCore.Qt.AlignCenter)
 
         self.parameters_monitor: DataMonitor = DataMonitor(self._data["parameters"])
@@ -272,12 +281,12 @@ class StraetgyWidget(QtWidgets.QFrame):
             self.strategy_manager.remove_strategy(self.strategy_name)
 
 
-class DataMonitor(QtWidgets.QTableWidget):
+class DataMonitor(TableWidget):
     """Strategy data monitor for parameters and variables"""
 
     def __init__(self, data: dict) -> None:
         """"""
-        super(DataMonitor, self).__init__()
+        super().__init__()
 
         self._data: dict = data
         self.cells: dict = {}
@@ -295,7 +304,7 @@ class DataMonitor(QtWidgets.QTableWidget):
             QtWidgets.QHeaderView.Stretch
         )
         self.verticalHeader().setVisible(False)
-        self.setEditTriggers(self.NoEditTriggers)
+        self.setEditTriggers(self.EditTrigger.NoEditTriggers)
 
         for column, name in enumerate(self._data.keys()):
             value = self._data[name]
@@ -374,7 +383,9 @@ class SettingEditor(QtWidgets.QDialog):
         for name, value in parameters.items():
             type_ = type(value)
 
-            edit: QtWidgets.QLineEdit = QtWidgets.QLineEdit(str(value))
+            edit: LineEdit = LineEdit()
+            edit.setText(str(value))
+
             if type_ is int:
                 validator: QtGui.QIntValidator = QtGui.QIntValidator()
                 edit.setValidator(validator)
@@ -386,7 +397,7 @@ class SettingEditor(QtWidgets.QDialog):
 
             self.edits[name] = (edit, type_)
 
-        button: QtWidgets.QPushButton = QtWidgets.QPushButton(button_text)
+        button: PushButton = PushButton(button_text)
         button.clicked.connect(self.accept)
         form.addRow(button)
 

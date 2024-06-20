@@ -385,7 +385,7 @@ class StrategyEngine(BaseEngine):
     def _load_strategy_class(self) -> None:
         """Load strategy class from files"""
         path1: Path = Path(__file__).parent.joinpath("strategies")
-        self._load_strategy_class_from_folder(path1, "vnpy_portfoliostrategy.strategies")
+        self._load_strategy_class_from_folder(path1, "vnpy_novastrategy.strategies")
 
         path2: Path = Path.cwd().joinpath("strategies")
         self._load_strategy_class_from_folder(path2, "strategies")
