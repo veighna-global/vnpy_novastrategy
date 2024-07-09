@@ -22,9 +22,10 @@
 
 
 from pathlib import Path
+from datetime import datetime
 
 from vnpy.trader.app import BaseApp
-from vnpy.trader.constant import Direction
+from vnpy.trader.constant import Direction, Interval
 from vnpy.trader.object import TickData, BarData, TradeData, OrderData
 from vnpy.trader.utility import BarGenerator, ArrayManager
 
