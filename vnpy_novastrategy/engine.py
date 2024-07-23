@@ -8,9 +8,9 @@ from typing import Type, Callable, Optional
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
-from vnpy.event import Event, EventEngine
-from vnpy.trader.engine import BaseEngine, MainEngine
-from vnpy.trader.object import (
+from vnpy_evo.event import Event, EventEngine
+from vnpy_evo.trader.engine import BaseEngine, MainEngine
+from vnpy_evo.trader.object import (
     OrderRequest,
     CancelRequest,
     SubscribeRequest,
@@ -22,19 +22,19 @@ from vnpy.trader.object import (
     BarData,
     ContractData
 )
-from vnpy.trader.event import (
+from vnpy_evo.trader.event import (
     EVENT_TICK,
     EVENT_ORDER,
     EVENT_TRADE
 )
-from vnpy.trader.constant import (
+from vnpy_evo.trader.constant import (
     Direction,
     OrderType,
     Interval,
     Offset
 )
-from vnpy.trader.utility import load_json, save_json, extract_vt_symbol, round_to
-from vnpy.trader.database import BaseDatabase, get_database, DB_TZ
+from vnpy_evo.trader.utility import load_json, save_json, extract_vt_symbol, round_to
+from vnpy_evo.trader.database import BaseDatabase, get_database, DB_TZ
 
 from .base import (
     APP_NAME,

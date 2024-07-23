@@ -10,11 +10,11 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pandas import DataFrame
 
-from vnpy.trader.constant import Direction, Offset, Interval, Status
-from vnpy.trader.database import get_database, BaseDatabase
-from vnpy.trader.object import OrderData, TradeData, BarData
-from vnpy.trader.utility import round_to, extract_vt_symbol
-from vnpy.trader.optimize import (
+from vnpy_evo.trader.constant import Direction, Offset, Interval, Status
+from vnpy_evo.trader.database import get_database, BaseDatabase
+from vnpy_evo.trader.object import OrderData, TradeData, BarData
+from vnpy_evo.trader.utility import round_to, extract_vt_symbol
+from vnpy_evo.trader.optimize import (
     OptimizationSetting,
     check_optimization_setting,
     run_bf_optimization,
@@ -75,6 +75,10 @@ class BacktestingEngine:
         interval: Interval,
         start: datetime,
         end: datetime,
+        priceticks: dict[str, float],
+        sizes: dict[str, int],
+        rates: dict[str, float],
+        slippages: dict[str, float],
         capital: int,
         risk_free: float = 0,
         annual_days: int = 365
@@ -84,6 +88,10 @@ class BacktestingEngine:
         self.interval = interval
         self.start = start
         self.end = end
+        self.priceticks = priceticks
+        self.sizes = sizes
+        self.rates = rates
+        self.slippages = slippages
         self.capital = capital
 
         self.risk_free = risk_free
@@ -118,7 +126,7 @@ class BacktestingEngine:
             )
 
             for bar in data:
-                bars: dict[str, BarData] = self.history_data.setdefault(bar.datetime)
+                bars: dict[str, BarData] = self.history_data.setdefault(bar.datetime, {})
                 bars[bar.vt_symbol] = bar
 
             self.output(f"Bar data of {vt_symbol} loaded, total count: {len(bars)}.")
@@ -143,7 +151,7 @@ class BacktestingEngine:
                     break
 
             try:
-                self.new_bars(dt)
+                self._new_bars(dt)
             except Exception:
                 self.output("Backtesting is finished due to exception!")
                 self.output(traceback.format_exc())
@@ -159,7 +167,7 @@ class BacktestingEngine:
         # Use the data left for replaying
         for dt in dts[ix:]:
             try:
-                self.new_bars(dt)
+                self._new_bars(dt)
             except Exception:
                 self.output("Backtesting is finished due to exception!")
                 self.output(traceback.format_exc())
@@ -510,11 +518,11 @@ class BacktestingEngine:
         self.datetime = dt
         self.bars: dict[str, BarData] = self.history_data[dt]
 
-        self.cross_limit_order()
+        self._cross_limit_order()
         self.strategy.on_bars(self.bars)
 
         if self.strategy.inited:
-            self.update_daily_close(self.bars, dt)
+            self._update_daily_close(self.bars, dt)
 
     def _cross_limit_order(self) -> None:
         """Cross limit orders"""

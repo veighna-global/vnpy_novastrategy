@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 from collections import defaultdict
 
-from vnpy.trader.constant import Interval, Direction, Offset
-from vnpy.trader.object import BarData, TickData, OrderData, TradeData
-from vnpy.trader.utility import virtual
+from vnpy_evo.trader.constant import Interval, Direction, Offset
+from vnpy_evo.trader.object import BarData, TickData, OrderData, TradeData
+from vnpy_evo.trader.utility import virtual
 
 if TYPE_CHECKING:
     from .engine import StrategyEngine

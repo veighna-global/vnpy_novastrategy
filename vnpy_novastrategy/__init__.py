@@ -24,10 +24,10 @@
 from pathlib import Path
 from datetime import datetime
 
-from vnpy.trader.app import BaseApp
-from vnpy.trader.constant import Direction, Interval
-from vnpy.trader.object import TickData, BarData, TradeData, OrderData
-from vnpy.trader.utility import BarGenerator, ArrayManager
+from vnpy_evo.trader.app import BaseApp
+from vnpy_evo.trader.constant import Direction, Interval
+from vnpy_evo.trader.object import TickData, BarData, TradeData, OrderData
+from vnpy_evo.trader.utility import BarGenerator, ArrayManager
 
 from .base import APP_NAME
 from .engine import StrategyEngine
