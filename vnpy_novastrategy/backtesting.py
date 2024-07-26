@@ -40,20 +40,24 @@ class BacktestingEngine:
 
     def __init__(self) -> None:
         """"""
-        self.vt_symbols: list[str] = []
+        self.interval: Interval = None
         self.start: datetime = None
         self.end: datetime = None
-
         self.capital: float = 1_000_000
         self.risk_free: float = 0
         self.annual_days: int = 240
+
+        self.vt_symbols: set[str] = set()
+        self.priceticks: dict[str, float] = {}
+        self.sizes: dict[str, float] = {}
+        self.rates: dict[str, float] = {}
+        self.slippages: dict[str, float] = {}
 
         self.strategy_class: StrategyTemplate = None
         self.strategy: StrategyTemplate = None
         self.bars: dict[str, BarData] = {}
         self.datetime: datetime = None
 
-        self.interval: Interval = None
         self.days: int = 0
         self.history_data: dict[str, dict] = defaultdict(dict)
 
@@ -71,31 +75,36 @@ class BacktestingEngine:
 
     def set_parameters(
         self,
-        vt_symbols: list[str],
         interval: Interval,
         start: datetime,
         end: datetime,
-        priceticks: dict[str, float],
-        sizes: dict[str, int],
-        rates: dict[str, float],
-        slippages: dict[str, float],
         capital: int,
         risk_free: float = 0,
         annual_days: int = 365
     ) -> None:
         """Set backtesting parameters"""
-        self.vt_symbols = vt_symbols
         self.interval = interval
         self.start = start
         self.end = end
-        self.priceticks = priceticks
-        self.sizes = sizes
-        self.rates = rates
-        self.slippages = slippages
         self.capital = capital
 
         self.risk_free = risk_free
         self.annual_days = annual_days
+
+    def add_contract(
+        self,
+        vt_symbol: str,
+        pricetick: float,
+        size: float,
+        rate: float,
+        slippage: float
+    ) -> None:
+        """Add contract for backtesting"""
+        self.vt_symbols.add(vt_symbol)
+        self.priceticks[vt_symbol] = pricetick
+        self.sizes[vt_symbol] = size
+        self.rates[vt_symbol] = rate
+        self.slippages[vt_symbol] = slippage
 
     def add_strategy(self, strategy_class: type, setting: dict) -> None:
         """Add the strategy for backtesting"""
@@ -104,7 +113,7 @@ class BacktestingEngine:
         self.strategy = strategy_class(
             self,
             strategy_class.__name__,
-            copy(self.vt_symbols),
+            list(self.vt_symbols),
             setting
         )
 
