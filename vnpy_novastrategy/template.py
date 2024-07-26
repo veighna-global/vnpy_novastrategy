@@ -1,6 +1,5 @@
 from typing import TYPE_CHECKING
 from collections import defaultdict
-from copy import copy
 
 from vnpy_evo.trader.constant import Interval, Direction, Offset
 from vnpy_evo.trader.object import BarData, TickData, OrderData, TradeData
@@ -187,7 +186,7 @@ class StrategyTemplate:
 
     def cancel_all(self) -> None:
         """Cancel all active orders"""
-        for vt_orderid in copy(self.active_orderids):
+        for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
 
     def get_pos(self, vt_symbol: str) -> int:
