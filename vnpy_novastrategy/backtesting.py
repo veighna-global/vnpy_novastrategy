@@ -2,7 +2,6 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import Optional
 from functools import lru_cache, partial
-from copy import copy
 import traceback
 
 import numpy as np
@@ -856,16 +855,20 @@ def evaluate(
     engine: BacktestingEngine = BacktestingEngine()
 
     engine.set_parameters(
-        vt_symbols=vt_symbols,
         interval=interval,
         start=start,
-        rates=rates,
-        slippages=slippages,
-        sizes=sizes,
-        priceticks=priceticks,
-        capital=capital,
         end=end,
+        capital=capital,
     )
+
+    for vt_symbol in vt_symbols:
+        engine.add_contract(
+            vt_symbol,
+            priceticks[vt_symbol],
+            sizes[vt_symbol],
+            rates[vt_symbol],
+            slippages[vt_symbol]
+        )
 
     engine.add_strategy(strategy_class, setting)
     engine.load_data()

@@ -2,8 +2,8 @@ from vnpy_novastrategy import (
     StrategyTemplate,
     BarData, TickData,
     TradeData, OrderData,
-    ArrayManager, Interval,
-    datetime
+    ArrayManager, BarGenerator,
+    Interval, datetime
 )
 
 
@@ -41,6 +41,13 @@ class SmaStrategy(StrategyTemplate):
 
         self.bar_dt: datetime = None
 
+        self.bg: BarGenerator = BarGenerator(
+            on_bar=lambda bar: None,
+            window=1,
+            on_window_bar=self.on_window_bar,
+            interval=Interval.HOUR
+        )
+
         self.am: ArrayManager = ArrayManager()
 
         self.load_bars(10, Interval.MINUTE)
@@ -70,11 +77,15 @@ class SmaStrategy(StrategyTemplate):
         self.on_bars(bars)
 
     def on_bars(self, bars: dict[str, BarData]) -> None:
-        """Callback of candle bar update"""
+        """Callback of 1-minute candle bars update"""
         self.cancel_all()
 
         bar: BarData = bars[self.trading_symbol]
 
+        self.bg.update_bar(bar)
+
+    def on_window_bar(self, bar: BarData) -> None:
+        """Callback of window bar update"""
         self.am.update_bar(bar)
         if not self.am.inited:
             return
