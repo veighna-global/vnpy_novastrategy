@@ -180,6 +180,9 @@ class StraetgyWidget(QtWidgets.QFrame):
         self.setFrameShape(self.Shape.Box)
         self.setLineWidth(3)
 
+        self.status_label: BodyLabel = BodyLabel("Ready")
+        self.status_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
         self.init_button: PushButton = PushButton("Initialize")
         self.init_button.clicked.connect(self.init_strategy)
 
@@ -209,6 +212,7 @@ class StraetgyWidget(QtWidgets.QFrame):
         self.variables_monitor: DataMonitor = DataMonitor(self._data["variables"])
 
         hbox: QtWidgets.QHBoxLayout = QtWidgets.QHBoxLayout()
+        hbox.addWidget(self.status_label)
         hbox.addWidget(self.init_button)
         hbox.addWidget(self.start_button)
         hbox.addWidget(self.stop_button)
@@ -230,20 +234,22 @@ class StraetgyWidget(QtWidgets.QFrame):
         self.variables_monitor.update_data(data["variables"])
 
         # Update enable status of buttons
-        variables: dict = data["variables"]
-        inited: bool = variables["inited"]
-        trading: bool = variables["trading"]
+        inited: bool = data["inited"]
+        trading: bool = data["trading"]
 
         if not inited:
             return
         self.init_button.setEnabled(False)
+        self.status_label.setText("Inited")
 
         if trading:
+            self.status_label.setText("Trading")
             self.start_button.setEnabled(False)
             self.stop_button.setEnabled(True)
             self.edit_button.setEnabled(False)
             self.remove_button.setEnabled(False)
         else:
+            self.status_label.setText("Stopped")
             self.start_button.setEnabled(True)
             self.stop_button.setEnabled(False)
             self.edit_button.setEnabled(True)

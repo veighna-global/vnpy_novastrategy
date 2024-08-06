@@ -196,10 +196,10 @@ class StrategyEngine(BaseEngine):
             data: list[BarData] = self._load_bar(vt_symbol, days, interval)
 
             for bar in data:
-                bars: dict[str, BarData] = history_data.setdefault(bar.datetime)
+                bars: dict[str, BarData] = history_data.setdefault(bar.datetime, {})
                 bars[bar.vt_symbol] = bar
 
-        dts: list = list(self.history_data.keys())
+        dts: list = list(history_data.keys())
         dts.sort()
 
         for dt in dts:
@@ -292,7 +292,7 @@ class StrategyEngine(BaseEngine):
 
             variables: dict = data.get("variables", {})
             for name in strategy.variables:
-                value: Optional[object] = data.get(variables, None)
+                value: Optional[object] = variables.get(name, None)
                 if value is None:
                     continue
                 setattr(strategy, name, value)
@@ -301,8 +301,7 @@ class StrategyEngine(BaseEngine):
         for vt_symbol in strategy.vt_symbols:
             contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
             if contract:
-                req: SubscribeRequest = SubscribeRequest(
-                    symbol=contract.symbol, exchange=contract.exchange)
+                req: SubscribeRequest = SubscribeRequest(symbol=contract.symbol, exchange=contract.exchange)
                 self.main_engine.subscribe(req, contract.gateway_name)
             else:
                 self.write_log(f"Subscribe market data failed, contract not found: {vt_symbol}", strategy)

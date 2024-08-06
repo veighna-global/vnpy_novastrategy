@@ -14,9 +14,9 @@ class SmaStrategy(StrategyTemplate):
 
     fast_window: int = 5
     slow_window: int = 20
-    trading_symbol: str = ""
     trading_size: int = 1
 
+    trading_symbol: str = ""
     fast_ma: int = 0
     slow_ma: int = 0
     trading_target: int = 0
@@ -25,14 +25,15 @@ class SmaStrategy(StrategyTemplate):
     parameters: list = [
         "fast_window",
         "slow_window",
-        "trading_symbol",
         "trading_size",
-        "trading_pos",
     ]
 
     variables: list = [
+        "trading_symbol",
         "fast_ma",
-        "slow_ma"
+        "slow_ma",
+        "trading_target",
+        "trading_pos",
     ]
 
     def on_init(self) -> None:
@@ -60,6 +61,7 @@ class SmaStrategy(StrategyTemplate):
         bar: BarData = tick.extra.get("bar", None)
         if not bar:
             return
+        self.write_log(str(bar))
 
         bar_dt: datetime = bar.datetime
         if self.bar_dt and bar_dt == self.bar_dt:
