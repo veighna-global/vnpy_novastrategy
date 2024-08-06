@@ -72,6 +72,7 @@ class NovaStrategyManager(QtWidgets.QWidget):
         scroll_widget.setLayout(self.scroll_layout)
 
         scroll_area: ScrollArea = ScrollArea()
+        scroll_area.setStyleSheet("background-color: transparent")
         scroll_area.setWidgetResizable(True)
         scroll_area.setWidget(scroll_widget)
 
@@ -177,7 +178,7 @@ class StraetgyWidget(QtWidgets.QFrame):
         """初始化界面"""
         self.setFixedHeight(300)
         self.setFrameShape(self.Shape.Box)
-        self.setLineWidth(1)
+        self.setLineWidth(3)
 
         self.init_button: PushButton = PushButton("Initialize")
         self.init_button.clicked.connect(self.init_strategy)
