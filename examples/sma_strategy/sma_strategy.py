@@ -27,12 +27,13 @@ class SmaStrategy(StrategyTemplate):
         "slow_window",
         "trading_symbol",
         "trading_size",
-        "trading_pos",
     ]
 
     variables: list = [
         "fast_ma",
-        "slow_ma"
+        "slow_ma",
+        "trading_target",
+        "trading_pos",
     ]
 
     def on_init(self) -> None:

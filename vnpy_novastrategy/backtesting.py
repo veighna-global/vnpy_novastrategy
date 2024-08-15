@@ -139,7 +139,7 @@ class BacktestingEngine:
                 bars: dict[str, BarData] = self.history_data.setdefault(bar.datetime, {})
                 bars[bar.vt_symbol] = bar
 
-            self.output(f"Bar data of {vt_symbol} loaded, total count: {len(bars)}.")
+            self.output(f"Bar data of {vt_symbol} loaded, total count: {len(data)}.")
 
         self.output("History data all loaded.")
 
