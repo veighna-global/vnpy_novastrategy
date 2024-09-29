@@ -1,4 +1,5 @@
 from typing import Optional
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -34,7 +35,9 @@ class DataTable:
 
         self.df: pd.DataFrame = None
         self.ix: int = 0
+        self.inited: bool = False
         self.periods: int = size * 100
+        self.dt: datetime = None
 
     def update_bars(self, bars: dict[str, BarData]) -> None:
         """Update bars data"""
@@ -64,8 +67,15 @@ class DataTable:
 
             df.loc[(bar.datetime, bar.vt_symbol)] = data
 
+        # Update latest dastetime
+        self.dt = bar.datetime
+
         # Update latest index
         self.ix += 1
+
+        # Check if inited
+        if not self.inited and self.ix > self.size:
+            self.inited = True
 
     def init_df(self, bars: dict[str, BarData]) -> None:
         """Initialize dataFrame"""
@@ -150,3 +160,7 @@ class DataTable:
         end_ix: int = self.ix * symbol_count
         start_ix: int = max(self.ix - self.size, 0) * symbol_count
         return self.df.iloc[start_ix: end_ix]
+
+    def get_dt(self) -> datetime:
+        """Get the datetime of latest bar"""
+        return self.dt

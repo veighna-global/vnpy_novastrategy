@@ -27,12 +27,13 @@ from datetime import datetime
 from vnpy_evo.trader.app import BaseApp
 from vnpy_evo.trader.constant import Direction, Interval
 from vnpy_evo.trader.object import TickData, BarData, TradeData, OrderData
-from vnpy_evo.trader.utility import BarGenerator, ArrayManager
+from vnpy_evo.trader.utility import BarGenerator, ArrayManager, round_to
 
 from .base import APP_NAME
 from .engine import StrategyEngine
 from .template import StrategyTemplate
 from .backtesting import BacktestingEngine
+from .table import DataTable
 
 
 __version__ = "0.3.0"
