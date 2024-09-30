@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import Union, Type, TYPE_CHECKING
 from collections import defaultdict
 
 from vnpy_evo.trader.constant import Interval, Direction, Offset
@@ -218,3 +218,47 @@ class StrategyTemplate:
         """Sync strategy data into files"""
         if self.trading:
             self.strategy_engine.sync_strategy_data(self)
+
+
+FieldValue = Union[str, int, float, bool]
+
+
+class StrategyField:
+    """Member value of strategy class"""
+
+    def __init__(
+        self,
+        value: FieldValue,
+        type: str,
+    ) -> None:
+        """"""
+        self.value: FieldValue = value
+        self.type: str = type
+
+    def __set_name__(self, owner: Type[StrategyTemplate], name: str) -> None:
+        """Add field name into related list"""
+        if hasattr(owner, self.type):
+            names: list[str] = getattr(owner, self.type)
+        else:
+            names: list[str] = []
+            setattr(owner, self.type, names)
+
+        names.append(name)
+
+        setattr(owner, name, self.value)
+
+
+class Parameter(StrategyField):
+    """Strategy parameter member"""
+
+    def __init__(self, value: FieldValue) -> None:
+        """"""
+        super().__init__(value, "parameters")
+
+
+class Variable(StrategyField):
+    """Strategy variable member"""
+
+    def __init__(self, value: FieldValue) -> None:
+        """"""
+        super().__init__(value, "variables")
