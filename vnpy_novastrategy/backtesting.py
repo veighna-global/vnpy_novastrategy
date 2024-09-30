@@ -10,6 +10,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from pandas import DataFrame
+from tqdm import tqdm
 
 from vnpy_evo.trader.constant import Direction, Offset, Interval, Status
 from vnpy_evo.trader.database import get_database, BaseDatabase
@@ -143,7 +144,7 @@ class BacktestingEngine:
 
         self.output("History data all loaded.")
 
-    def run_backtesting(self) -> None:
+    def run_backtesting(self, disable_tqdm: bool = False) -> None:
         """Start backtesting"""
         self.strategy.on_init()
 
@@ -175,7 +176,9 @@ class BacktestingEngine:
         self.output("Starting to replay history data.")
 
         # Use the data left for replaying
-        for dt in dts[ix:]:
+        backtesting_dts: list[datetime] = dts[ix:]
+
+        for dt in tqdm(backtesting_dts, total=len(backtesting_dts), disable=disable_tqdm):
             try:
                 self._new_bars(dt)
             except Exception:
@@ -888,9 +891,8 @@ def evaluate(
 
     with open(get_file_path("history_temp"), mode="rb") as f:
         engine.history_data = pickle.load(f)
-    # engine.load_data()
 
-    engine.run_backtesting()
+    engine.run_backtesting(disable_tqdm=True)
     engine.calculate_result()
     statistics: dict = engine.calculate_statistics(output=False)
 
