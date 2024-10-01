@@ -31,7 +31,7 @@ from vnpy_evo.trader.utility import BarGenerator, ArrayManager, round_to
 
 from .base import APP_NAME
 from .engine import StrategyEngine
-from .template import StrategyTemplate
+from .template import StrategyTemplate, Parameter, Variable
 from .backtesting import BacktestingEngine
 from .table import DataTable
 

@@ -3,6 +3,7 @@ import talib as ta
 
 from vnpy_novastrategy import (
     StrategyTemplate,
+    Parameter, Variable,
     BarData, TickData,
     TradeData, OrderData,
     Interval, datetime,
@@ -15,40 +16,22 @@ class TrendStrategy(StrategyTemplate):
 
     author: str = "VeighNa Global"
 
-    boll_window: int = 20
-    boll_dev: int = 2
-    atr_window: int = 14
-    trailing_multiplier: float = 2
-    risk_level: float = 5000
-    percent_add: float = 0.01
+    boll_window: int = Parameter(20)
+    boll_dev: int = Parameter(2)
+    atr_window: int = Parameter(14)
+    trailing_multiplier: float = Parameter(2)
+    risk_level: float = Parameter(5000)
+    percent_add: float = Parameter(0.01)
 
-    trading_size: float = 0.0
-    trading_target: float = 0.0
-    trading_pos: float = 0.0
-    boll_up: float = 0.0
-    boll_down: float = 0.0
-    intra_trade_high: float = 0.0
-    intra_trade_low: float = 0.0
-    long_stop: float = 0.0
-    short_stop: float = 0.0
-
-    parameters = [
-        "boll_window",
-        "boll_dev",
-        "atr_window",
-        "risk_level"
-    ]
-    variables = [
-        "trading_size",
-        "trading_target",
-        "trading_pos",
-        "boll_up",
-        "boll_down",
-        "intra_trade_high",
-        "intra_trade_low",
-        "long_stop",
-        "short_stop",
-    ]
+    trading_size: float = Variable(0.0)
+    trading_target: float = Variable(0.0)
+    trading_pos: float = Variable(0.0)
+    boll_up: float = Variable(0.0)
+    boll_down: float = Variable(0.0)
+    intra_trade_high: float = Variable(0.0)
+    intra_trade_low: float = Variable(0.0)
+    long_stop: float = Variable(0.0)
+    short_stop: float = Variable(0.0)
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
@@ -94,31 +77,39 @@ class TrendStrategy(StrategyTemplate):
         if not self.table.inited:
             return
 
-        # Check if hour finished
+        # Check breakout and execute trading every minute
+        bar: BarData = bars[self.trading_symbol]
+        self.check_breakout(bar)
+        self.execute_trading(bar)
+
+        # Calculate technical indicators every hour
         last_dt: datetime = self.table.get_dt()
         if last_dt.minute != 59:
-            return
+            # Aggregate hour OHLC data
+            minute_df: pd.DataFrame = self.table.get_df().xs(self.trading_symbol, level=1)
+            hour_df: pd.DataFrame = minute_df.resample("h").agg(self.agg_setting)
 
-        # Aggregate hour OHLC data
-        minute_df: pd.DataFrame = self.table.get_df().xs(self.trading_symbol, level=1)
-        hour_df: pd.DataFrame = minute_df.resample("h").agg(self.agg_setting)
+            # Calculate technical indicator
+            sma_s: pd.Series = ta.SMA(hour_df["close_price"], self.boll_window)
+            std_s: pd.Series = ta.STDDEV(hour_df["close_price"], self.boll_window)
+            boll_up_s: pd.Series = sma_s + std_s * self.boll_dev
+            boll_down_s: pd.Series = sma_s - std_s * self.boll_dev
+            self.boll_up = boll_up_s.iloc[-1]
+            self.boll_down = boll_down_s.iloc[-1]
 
-        # Calculate technical indicator
-        sma_s: pd.Series = ta.SMA(hour_df["close_price"], self.boll_window)
-        std_s: pd.Series = ta.STDDEV(hour_df["close_price"], self.boll_window)
-        boll_up_s: pd.Series = sma_s + std_s * self.boll_dev
-        boll_down_s: pd.Series = sma_s - std_s * self.boll_dev
-        atr_s: pd.Series = ta.ATR(hour_df["high_price"], hour_df["low_price"], hour_df["close_price"])
-
-        self.boll_up = boll_up_s.iloc[-1]
-        self.boll_down = boll_down_s.iloc[-1]
-        self.atr_value = atr_s.iloc[-1]
-
-        # Generate trading target position
-        bar: BarData = bars[self.trading_symbol]
-
-        if not self.trading_target:
+            atr_s: pd.Series = ta.ATR(hour_df["high_price"], hour_df["low_price"], hour_df["close_price"])
+            self.atr_value = atr_s.iloc[-1]
             self.trading_size = round(self.risk_level / self.atr_value, 2)
+
+        # Put event to upgrade GUI
+        self.put_event()
+
+    def check_breakout(self, bar: BarData) -> None:
+        """Check critical level breakout"""
+        # Holding no position
+        if not self.trading_target:
+            if not self.trading_size:
+                return
 
             if bar.high_price >= self.boll_up:
                 self.trading_target = self.trading_size
@@ -126,14 +117,14 @@ class TrendStrategy(StrategyTemplate):
             elif bar.low_price <= self.boll_down:
                 self.trading_target = -self.trading_size
                 self.intra_trade_low = bar.close_price
-
+        # Holding long position
         elif self.trading_target > 0:
             if bar.low_price <= self.long_stop:
                 self.trading_target = 0
             else:
                 self.intra_trade_high = max(self.intra_trade_high, bar.high_price)
                 self.long_stop = self.intra_trade_high - self.atr_value * self.trailing_multiplier
-
+        # Holding short position
         elif self.trading_target < 0:
             if bar.high_price >= self.short_stop:
                 self.trading_target = 0
@@ -141,11 +132,16 @@ class TrendStrategy(StrategyTemplate):
                 self.intra_trade_low = min(self.intra_trade_low, bar.low_price)
                 self.short_stop = self.intra_trade_low + self.atr_value * self.trailing_multiplier
 
+    def execute_trading(self, bar: BarData) -> None:
+        """Execute trading according to the difference between target and pos"""
         # Cancel all existing orders
         self.cancel_all()
 
         # Send new order according to the difference between target and pos
         trading_volume: int = self.trading_target - self.trading_pos
+        if not trading_volume:
+            return
+
         pricetick: float = self.get_pricetick(self.trading_symbol)
 
         if trading_volume > 0:
@@ -154,9 +150,6 @@ class TrendStrategy(StrategyTemplate):
         elif trading_volume < 0:
             short_price: float = round_to(bar.close_price * (1 - self.percent_add), pricetick)
             self.short(self.trading_symbol, short_price, abs(trading_volume))
-
-        # Put event to upgrade GUI
-        self.put_event()
 
     def on_trade(self, trade: TradeData) -> None:
         """Callback of trade update"""
