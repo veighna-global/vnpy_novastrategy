@@ -15,16 +15,16 @@ class TrendStrategy(StrategyTemplate):
 
     author: str = "VeighNa Global"
 
-    boll_window: int = Parameter(20)
-    boll_dev: int = Parameter(2)
-    atr_window: int = Parameter(14)
-    trailing_multiplier: float = Parameter(2)
+    boll_window: int = Parameter(75)
+    boll_dev: int = Parameter(5)
+    atr_window: int = Parameter(20)
+    trailing_multiplier: float = Parameter(6.5)
     risk_level: float = Parameter(5000)
-    percent_add: float = Parameter(0.01)
 
     trading_size: float = Variable(0.0)
     trading_target: float = Variable(0.0)
     trading_pos: float = Variable(0.0)
+    trading_allowed: bool = Variable(False)
     boll_up: float = Variable(0.0)
     boll_down: float = Variable(0.0)
     intra_trade_high: float = Variable(0.0)
@@ -85,30 +85,38 @@ class TrendStrategy(StrategyTemplate):
             self.boll_up = boll_up_s.iloc[-1]
             self.boll_down = boll_down_s.iloc[-1]
 
-            atr_s: pd.Series = ta.ATR(df["high_price"], df["low_price"], df["close_price"])
+            atr_s: pd.Series = ta.ATR(df["high_price"], df["low_price"], df["close_price"], self.atr_window)
             self.atr_value = atr_s.iloc[-1]
             self.trading_size = round(self.risk_level / self.atr_value, 2)
+
+            self.trading_allowed = True
 
         # Put event to upgrade GUI
         self.put_event()
 
     def check_breakout(self, bar: BarData) -> None:
         """Check critical level breakout"""
+        if not self.trading_allowed:
+            return
+
         # Holding no position
         if not self.trading_target:
-            if not self.trading_size:
-                return
-
             if bar.high_price >= self.boll_up:
                 self.trading_target = self.trading_size
                 self.intra_trade_high = bar.close_price
+
+                self.trading_allowed = False
             elif bar.low_price <= self.boll_down:
                 self.trading_target = -self.trading_size
                 self.intra_trade_low = bar.close_price
+
+                self.trading_allowed = False
         # Holding long position
         elif self.trading_target > 0:
             if bar.low_price <= self.long_stop:
                 self.trading_target = 0
+
+                self.trading_allowed = False
             else:
                 self.intra_trade_high = max(self.intra_trade_high, bar.high_price)
                 self.long_stop = self.intra_trade_high - self.atr_value * self.trailing_multiplier
@@ -116,6 +124,8 @@ class TrendStrategy(StrategyTemplate):
         elif self.trading_target < 0:
             if bar.high_price >= self.short_stop:
                 self.trading_target = 0
+
+                self.trading_allowed = False
             else:
                 self.intra_trade_low = min(self.intra_trade_low, bar.low_price)
                 self.short_stop = self.intra_trade_low + self.atr_value * self.trailing_multiplier
@@ -133,10 +143,10 @@ class TrendStrategy(StrategyTemplate):
         pricetick: float = self.get_pricetick(self.trading_symbol)
 
         if trading_volume > 0:
-            buy_price: float = round_to(bar.close_price * (1 + self.percent_add), pricetick)
+            buy_price: float = round_to(bar.close_price - pricetick, pricetick)
             self.buy(self.trading_symbol, buy_price, abs(trading_volume))
         elif trading_volume < 0:
-            short_price: float = round_to(bar.close_price * (1 - self.percent_add), pricetick)
+            short_price: float = round_to(bar.close_price + pricetick, pricetick)
             self.short(self.trading_symbol, short_price, abs(trading_volume))
 
     def on_trade(self, trade: TradeData) -> None:

@@ -1,6 +1,5 @@
 from typing import Optional
 from datetime import datetime
-from copy import copy
 
 import numpy as np
 import pandas as pd
@@ -40,45 +39,50 @@ class DataTable:
         self.ix: int = 0
         self.inited: bool = False
         self.periods: int = size * 100
-        self.dt: datetime = None
 
         if interval == Interval.MINUTE:
-            bg_window: int = window
+            agg_window: int = window
         elif interval == Interval.HOUR:
-            bg_window: int = window * 60
+            agg_window: int = window * 60
         elif interval == Interval.DAILY:
-            bg_window: int = 240
+            agg_window: int = 240
 
-        if bg_window > 1:
-            self.bgs: dict[str, BarGenerator] = {}
+        if agg_window > 1:
+            self.aggregators: dict[str, DataAggregator] = {}
             for vt_symbol in vt_symbols:
-                self.bgs[vt_symbol] = BarGenerator(bg_window)
+                self.aggregators[vt_symbol] = DataAggregator(agg_window)
+
+            self.update_bars = self._update_minute_bars
         else:
-            self.update_bars = self.update_window_bars
+            self.update_bars = self._update_window_bars
 
     def update_bars(self, bars: dict[str, BarData]) -> bool:
-        """Update bars data"""
+        """Update bars data into table"""
+        pass
+
+    def _update_minute_bars(self, bars: dict[str, BarData]) -> bool:
+        """Update minute bars to aggregate window bars"""
         window_bars: dict = {}
 
         for vt_symbol, bar in bars.items():
-            bg: BarGenerator = self.bgs[vt_symbol]
+            bg: DataAggregator = self.aggregators[vt_symbol]
             window_bar: BarData = bg.update_bar(bar)
             if window_bar:
                 window_bars[vt_symbol] = window_bar
 
         if window_bars:
-            self.update_window_bars(bars)
+            self._update_window_bars(bars)
             return self.inited
         else:
             return False
 
-    def update_window_bars(self, bars: dict[str, BarData]) -> None:
-        """Update bars data"""
+    def _update_window_bars(self, bars: dict[str, BarData]) -> bool:
+        """Update window bars directly into table"""
         # Check DF state
         if self.df is None:
-            self.init_df(bars)
+            self._init_df(bars)
         elif self.ix == self.periods:
-            self.reset_df(bars)
+            self._reset_df(bars)
 
         # Update data into DF
         df: pd.DataFrame = self.df
@@ -100,9 +104,6 @@ class DataTable:
 
             df.loc[(bar.datetime, bar.vt_symbol)] = data
 
-        # Update latest dastetime
-        self.dt = bar.datetime
-
         # Update latest index
         self.ix += 1
 
@@ -110,7 +111,9 @@ class DataTable:
         if not self.inited and self.ix > self.size:
             self.inited = True
 
-    def init_df(self, bars: dict[str, BarData]) -> None:
+        return self.inited
+
+    def _init_df(self, bars: dict[str, BarData]) -> None:
         """Initialize dataFrame"""
         bar: BarData = list(bars.values())[0]
 
@@ -144,7 +147,7 @@ class DataTable:
 
         self.ix = 0
 
-    def reset_df(self, bars: dict[str, BarData]) -> None:
+    def _reset_df(self, bars: dict[str, BarData]) -> None:
         """Reset dataFrame"""
         old_df: pd.DataFrame = self.df
         dt_index: pd.DatetimeIndex = old_df.index.levels[0]
@@ -194,23 +197,17 @@ class DataTable:
         start_ix: int = max(self.ix - self.size, 0) * symbol_count
         return self.df.iloc[start_ix: end_ix]
 
-    def get_dt(self) -> datetime:
-        """Get the datetime of latest bar"""
-        return self.dt
 
+class DataAggregator:
+    """Bar data aggregator for crypto strategy"""
 
-class BarGenerator:
-    """Window bar generator for crypto strategy"""
-
-    def __init__(self, window: int) -> None:
+    def __init__(self, agg_window: int) -> None:
         """Constructor"""
-        self.window: int = window
+        self.agg_window: int = agg_window
         self.window_bar: BarData = None
 
     def update_bar(self, bar: BarData) -> None:
-        """
-        Update 1 minute bar into generator
-        """
+        """Update 1 minute bar into aggregator"""
         # If not inited, create window bar object
         if not self.window_bar:
             dt: datetime = bar.datetime.replace(second=0, microsecond=0)
@@ -223,9 +220,7 @@ class BarGenerator:
                 high_price=bar.high_price,
                 low_price=bar.low_price
             )
-
-            if bar.extra is not None:
-                self.window_bar.extra = copy(bar.extra)
+            self.window_bar.extra = {}
         # Otherwise, update high/low price into window bar
         else:
             self.window_bar.high_price = max(
@@ -252,8 +247,8 @@ class BarGenerator:
         # Check if window bar completed
         window_bar: BarData = None
 
-        daily_minutes: int = bar.datetime.hour * 60 + bar.datetime.minute
-        if not (daily_minutes + 1) % self.window:
+        minute_passed: int = bar.datetime.hour * 60 + bar.datetime.minute
+        if not (minute_passed + 1) % self.agg_window:
             window_bar = self.window_bar
             self.window_bar = None
 
