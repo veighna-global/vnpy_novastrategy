@@ -1,5 +1,6 @@
 from typing import Optional
 from datetime import datetime
+from copy import copy
 
 import numpy as np
 import pandas as pd
@@ -21,12 +22,14 @@ class DataTable:
         self,
         vt_symbols: list[str],
         size: int = 100,
+        window: int = 1,
         interval: Interval = Interval.MINUTE,
         extra_fields: list[str] = None
     ) -> None:
         """"""
         self.vt_symbols: list[str] = vt_symbols
         self.size: int = size
+        self.window: int = window
         self.interval: Interval = interval
 
         if not extra_fields:
@@ -39,7 +42,37 @@ class DataTable:
         self.periods: int = size * 100
         self.dt: datetime = None
 
-    def update_bars(self, bars: dict[str, BarData]) -> None:
+        if interval == Interval.MINUTE:
+            bg_window: int = window
+        elif interval == Interval.HOUR:
+            bg_window: int = window * 60
+        elif interval == Interval.DAILY:
+            bg_window: int = 240
+
+        if bg_window > 1:
+            self.bgs: dict[str, BarGenerator] = {}
+            for vt_symbol in vt_symbols:
+                self.bgs[vt_symbol] = BarGenerator(bg_window)
+        else:
+            self.update_bars = self.update_window_bars
+
+    def update_bars(self, bars: dict[str, BarData]) -> bool:
+        """Update bars data"""
+        window_bars: dict = {}
+
+        for vt_symbol, bar in bars.items():
+            bg: BarGenerator = self.bgs[vt_symbol]
+            window_bar: BarData = bg.update_bar(bar)
+            if window_bar:
+                window_bars[vt_symbol] = window_bar
+
+        if window_bars:
+            self.update_window_bars(bars)
+            return self.inited
+        else:
+            return False
+
+    def update_window_bars(self, bars: dict[str, BarData]) -> None:
         """Update bars data"""
         # Check DF state
         if self.df is None:
@@ -164,3 +197,64 @@ class DataTable:
     def get_dt(self) -> datetime:
         """Get the datetime of latest bar"""
         return self.dt
+
+
+class BarGenerator:
+    """Window bar generator for crypto strategy"""
+
+    def __init__(self, window: int) -> None:
+        """Constructor"""
+        self.window: int = window
+        self.window_bar: BarData = None
+
+    def update_bar(self, bar: BarData) -> None:
+        """
+        Update 1 minute bar into generator
+        """
+        # If not inited, create window bar object
+        if not self.window_bar:
+            dt: datetime = bar.datetime.replace(second=0, microsecond=0)
+            self.window_bar = BarData(
+                symbol=bar.symbol,
+                exchange=bar.exchange,
+                datetime=dt,
+                gateway_name=bar.gateway_name,
+                open_price=bar.open_price,
+                high_price=bar.high_price,
+                low_price=bar.low_price
+            )
+
+            if bar.extra is not None:
+                self.window_bar.extra = copy(bar.extra)
+        # Otherwise, update high/low price into window bar
+        else:
+            self.window_bar.high_price = max(
+                self.window_bar.high_price,
+                bar.high_price
+            )
+            self.window_bar.low_price = min(
+                self.window_bar.low_price,
+                bar.low_price
+            )
+
+        # Update close price/volume/turnover into window bar
+        self.window_bar.close_price = bar.close_price
+        self.window_bar.volume += bar.volume
+        self.window_bar.turnover += bar.turnover
+        self.window_bar.open_interest = bar.open_interest
+
+        # Sum up extra fields
+        if bar.extra:
+            for k, v in bar.extra.items():
+                window_v: float = self.window_bar.extra.get(k, 0) + v
+                self.window_bar.extra[k] = window_v
+
+        # Check if window bar completed
+        window_bar: BarData = None
+
+        daily_minutes: int = bar.datetime.hour * 60 + bar.datetime.minute
+        if not (daily_minutes + 1) % self.window:
+            window_bar = self.window_bar
+            self.window_bar = None
+
+        return window_bar

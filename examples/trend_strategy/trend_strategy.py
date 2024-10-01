@@ -6,8 +6,7 @@ from vnpy_novastrategy import (
     Parameter, Variable,
     BarData, TickData,
     TradeData, OrderData,
-    Interval, datetime,
-    DataTable, round_to
+    Interval, DataTable, round_to,
 )
 
 
@@ -35,18 +34,13 @@ class TrendStrategy(StrategyTemplate):
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
-        self.agg_setting: dict = {
-            "open_price": "first",
-            "high_price": "max",
-            "low_price": "min",
-            "close_price": "last"
-        }
         self.trading_symbol: str = self.vt_symbols[0]
 
         self.table: DataTable = DataTable(
             vt_symbols=[self.trading_symbol],
-            size=60 * 100,
-            interval=Interval.MINUTE
+            size=100,
+            window=1,
+            interval=Interval.HOUR
         )
 
         self.load_bars(10, Interval.MINUTE)
@@ -72,32 +66,26 @@ class TrendStrategy(StrategyTemplate):
 
     def on_bars(self, bars: dict[str, BarData]) -> None:
         """Callback of 1-minute candle bars update"""
-        # Update bars into data table
-        self.table.update_bars(bars)
-        if not self.table.inited:
-            return
-
         # Check breakout and execute trading every minute
         bar: BarData = bars[self.trading_symbol]
         self.check_breakout(bar)
         self.execute_trading(bar)
 
-        # Calculate technical indicators every hour
-        last_dt: datetime = self.table.get_dt()
-        if last_dt.minute != 59:
-            # Aggregate hour OHLC data
-            minute_df: pd.DataFrame = self.table.get_df().xs(self.trading_symbol, level=1)
-            hour_df: pd.DataFrame = minute_df.resample("h").agg(self.agg_setting)
+        # Update bars into data table
+        finished: bool = self.table.update_bars(bars)
 
-            # Calculate technical indicator
-            sma_s: pd.Series = ta.SMA(hour_df["close_price"], self.boll_window)
-            std_s: pd.Series = ta.STDDEV(hour_df["close_price"], self.boll_window)
+        # Calculate indicators every hour
+        if finished:
+            df: pd.DataFrame = self.table.get_df().xs(self.trading_symbol, level=1)
+
+            sma_s: pd.Series = ta.SMA(df["close_price"], self.boll_window)
+            std_s: pd.Series = ta.STDDEV(df["close_price"], self.boll_window)
             boll_up_s: pd.Series = sma_s + std_s * self.boll_dev
             boll_down_s: pd.Series = sma_s - std_s * self.boll_dev
             self.boll_up = boll_up_s.iloc[-1]
             self.boll_down = boll_down_s.iloc[-1]
 
-            atr_s: pd.Series = ta.ATR(hour_df["high_price"], hour_df["low_price"], hour_df["close_price"])
+            atr_s: pd.Series = ta.ATR(df["high_price"], df["low_price"], df["close_price"])
             self.atr_value = atr_s.iloc[-1]
             self.trading_size = round(self.risk_level / self.atr_value, 2)
 
