@@ -34,6 +34,7 @@ from .engine import StrategyEngine
 from .template import StrategyTemplate, Parameter, Variable
 from .backtesting import BacktestingEngine
 from .table import DataTable
+from .handler import TickHandler
 
 
 __version__ = "0.3.0"

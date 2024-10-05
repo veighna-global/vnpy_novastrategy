@@ -6,7 +6,8 @@ from vnpy_novastrategy import (
     Parameter, Variable,
     BarData, TickData,
     TradeData, OrderData,
-    Interval, DataTable, round_to,
+    Interval, round_to,
+    DataTable, TickHandler
 )
 
 
@@ -35,9 +36,15 @@ class TrendStrategy(StrategyTemplate):
     def on_init(self) -> None:
         """Callback when strategy is inited"""
         self.trading_symbol: str = self.vt_symbols[0]
+        print(self.vt_symbols)
+
+        self.handler: TickHandler = TickHandler(
+            vt_symbols=self.vt_symbols,
+            on_bars=self.on_bars
+        )
 
         self.table: DataTable = DataTable(
-            vt_symbols=[self.trading_symbol],
+            vt_symbols=self.vt_symbols,
             size=100,
             window=1,
             interval=Interval.HOUR
@@ -57,12 +64,7 @@ class TrendStrategy(StrategyTemplate):
 
     def on_tick(self, tick: TickData) -> None:
         """Callback of tick data update"""
-        bar: BarData = tick.extra.get("bar", None)
-        if not bar:
-            return
-
-        bars: dict = {bar.vt_symbol: bar}
-        self.on_bars(bars)
+        self.handler.update_tick(tick)
 
     def on_bars(self, bars: dict[str, BarData]) -> None:
         """Callback of 1-minute candle bars update"""
