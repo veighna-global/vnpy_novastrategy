@@ -7,6 +7,8 @@ import pandas as pd
 from vnpy.trader.object import BarData
 from vnpy.trader.constant import Interval
 
+from .expression import calculate_by_expression
+
 
 class DataTable:
     """Time-series data container for crypto strategy"""
@@ -40,6 +42,9 @@ class DataTable:
         self.inited: bool = False
         self.periods: int = size * 100
 
+        self.feature_expressions: dict[str, str] = {}
+
+        # initialize DataAggregator
         if interval == Interval.MINUTE:
             agg_window: int = window
         elif interval == Interval.HOUR:
@@ -59,6 +64,10 @@ class DataTable:
     def update_bars(self, bars: dict[str, BarData]) -> bool:
         """Update bars data into table"""
         pass
+
+    def add_feature(self, name: str, expression: str) -> None:
+        """Add feature expression for querying df"""
+        self.feature_expressions[name] = expression
 
     def _update_minute_bars(self, bars: dict[str, BarData]) -> bool:
         """Update minute bars to aggregate window bars"""
@@ -195,7 +204,13 @@ class DataTable:
         symbol_count: int = len(self.vt_symbols)
         end_ix: int = self.ix * symbol_count
         start_ix: int = max(self.ix - self.size, 0) * symbol_count
-        return self.df.iloc[start_ix: end_ix]
+
+        df: pd.DataFrame = self.df.iloc[start_ix: end_ix].copy()
+
+        for name, expression in self.feature_expressions.items():
+            df[name] = calculate_by_expression(df, expression)
+
+        return df
 
 
 class DataAggregator:
