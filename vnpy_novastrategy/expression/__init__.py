@@ -1,0 +1,17 @@
+import pandas as pd
+
+from .ts_function import *
+from .cs_function import *
+from .ta_function import *
+
+
+def feature_by_expression(df: pd.DataFrame, expression: str) -> None:
+    """基于表达式计算特征"""
+    d: dict[str, pd.Series] = {}
+
+    for column in df.columns:
+        d[column] = df[column]
+
+    feature = eval(expression, locals=d)
+
+    return feature
