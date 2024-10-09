@@ -8,12 +8,14 @@ from scipy import stats
 
 def ts_min(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的最小值"""
-    return x.rolling(window).min()
+    result: pd.Series = x.groupby(level=1).rolling(window).min()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_max(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的最大值"""
-    return x.rolling(window).max()
+    result: pd.Series = x.groupby(level=1).rolling(window).max()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_delay(x: pd.Series, window: int) -> pd.Series:
@@ -26,29 +28,22 @@ def ts_delta(x: pd.Series, window: int) -> pd.Series:
     return x - ts_delay(x, window)
 
 
-def ts_argmin(x: pd.Series, window: int) -> pd.Series:
-    """时序滚动窗口中最小值出现的位置"""
-    return x.rolling(window).apply(lambda x: x.argmin())
-
-
-def ts_argmax(x: pd.Series, window: int) -> pd.Series:
-    """时序滚动窗口中最大值出现的位置"""
-    return x.rolling(window).apply(lambda x: x.argmax())
-
-
 def ts_rank(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口中当前值所处分位数"""
-    return x.rolling(window).apply(lambda x: stats.percentileofscore(x, x.tail(1)) / 100)
+    result: pd.Series = x.groupby(level=1).rolling(window).apply(lambda x: stats.percentileofscore(x, x.tail(1)) / 100)
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_sum(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口之和"""
-    return x.rolling(window).sum()
+    result: pd.Series = x.groupby(level=1).rolling(window).sum()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_std(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的标准差"""
-    return x.rolling(window).std()
+    result: pd.Series = x.groupby(level=1).rolling(window).std()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_corr(x1: pd.Series, x2: pd.Series, window: int) -> pd.Series:
@@ -58,34 +53,31 @@ def ts_corr(x1: pd.Series, x2: pd.Series, window: int) -> pd.Series:
 
 def ts_mean(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的平均值"""
-    return x.rolling(window).mean()
+    result: pd.Series = x.groupby(level=1).rolling(window).mean()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_skew(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的偏度"""
-    return x.rolling(window).skew()
+    result: pd.Series = x.groupby(level=1).rolling(window).skew()
+    return result.reset_index(level=0, drop=True)
 
 
 def ts_kurtosis(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口的峰度"""
-    return x.rolling(window).kurt()
+    result: pd.Series = x.groupby(level=1).rolling(window).kurt()
+    return result.reset_index(level=0, drop=True)
 
 
-def ts_greater_than(x1: pd.Series, x2: pd.Series, window: int) -> pd.Series:
+def ts_greater_than(x1: pd.Series, x2: pd.Series) -> pd.Series:
     """比较X1是否大于等于X2，返回对应的0或者1"""
     x1 = x1.fillna(0)
     x2 = x2.fillna(0)
     return (x1 > x2).astype(float)
 
 
-def ts_less_than(x1: pd.Series, x2: pd.Series, window: int) -> pd.Series:
+def ts_less_than(x1: pd.Series, x2: pd.Series) -> pd.Series:
     """比较X1是否小于等于X2，返回对应的0或者1"""
     x1 = x1.fillna(0)
     x2 = x2.fillna(0)
     return (x1 < x2).astype(float)
-
-
-def ts_compare_mean(x: pd.Series, window: int) -> pd.Series:
-    """比较X是否大于自己滚动窗口的均值"""
-    mean: pd.Series = x.rolling(window).mean()
-    return (x > mean).astype(float)
