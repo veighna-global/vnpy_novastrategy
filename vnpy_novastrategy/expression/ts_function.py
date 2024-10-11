@@ -69,15 +69,21 @@ def ts_kurtosis(x: pd.Series, window: int) -> pd.Series:
     return result.reset_index(level=0, drop=True)
 
 
-def ts_greater_than(x1: pd.Series, x2: pd.Series) -> pd.Series:
+def ts_greater_than(x1: pd.Series, x2: pd.Series | float) -> pd.Series:
     """比较X1是否大于等于X2，返回对应的0或者1"""
     x1 = x1.fillna(0)
-    x2 = x2.fillna(0)
+
+    if isinstance(x2, pd.Series):
+        x2 = x2.fillna(0)
+
     return (x1 > x2).astype(float)
 
 
-def ts_less_than(x1: pd.Series, x2: pd.Series) -> pd.Series:
+def ts_less_than(x1: pd.Series, x2: pd.Series | float) -> pd.Series:
     """比较X1是否小于等于X2，返回对应的0或者1"""
     x1 = x1.fillna(0)
-    x2 = x2.fillna(0)
+
+    if isinstance(x2, pd.Series):
+        x2 = x2.fillna(0)
+
     return (x1 < x2).astype(float)
