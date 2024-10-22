@@ -185,6 +185,15 @@ class StrategyEngine(BaseEngine):
         else:
             return None
 
+    def get_min_volume(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
+        """Get min volume of a contract"""
+        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+
+        if contract:
+            return contract.min_volume
+        else:
+            return None
+
     def load_bars(self, strategy: StrategyTemplate, days: int, interval: Interval) -> None:
         """Load history bar data for portfolio"""
         vt_symbols: list = strategy.vt_symbols

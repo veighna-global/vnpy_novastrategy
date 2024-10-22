@@ -52,6 +52,7 @@ class BacktestingEngine:
         self.vt_symbols: set[str] = set()
         self.priceticks: dict[str, float] = {}
         self.sizes: dict[str, float] = {}
+        self.min_volumes: dict[str, float] = {}
         self.rates: dict[str, float] = {}
         self.slippages: dict[str, float] = {}
 
@@ -98,8 +99,9 @@ class BacktestingEngine:
         vt_symbol: str,
         pricetick: float,
         size: float,
+        min_volume: float,
         rate: float,
-        slippage: float
+        slippage: float,
     ) -> None:
         """Add contract for backtesting"""
         self.vt_symbols.add(vt_symbol)
@@ -107,6 +109,7 @@ class BacktestingEngine:
         self.sizes[vt_symbol] = size
         self.rates[vt_symbol] = rate
         self.slippages[vt_symbol] = slippage
+        self.min_volumes[vt_symbol] = min_volume
 
     def add_strategy(self, strategy_class: type, setting: dict) -> None:
         """Add the strategy for backtesting"""
@@ -679,6 +682,10 @@ class BacktestingEngine:
     def get_size(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
         """Get size of a contract"""
         return self.sizes[vt_symbol]
+
+    def get_min_volume(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
+        """Get min volume of a contract"""
+        return self.min_volumes[vt_symbol]
 
     def put_strategy_event(self, strategy: StrategyTemplate) -> None:
         """Put strategy UI update event"""

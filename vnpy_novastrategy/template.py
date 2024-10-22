@@ -205,6 +205,10 @@ class StrategyTemplate:
         """Get size of a contract"""
         return self.strategy_engine.get_size(self, vt_symbol)
 
+    def get_min_volume(self, vt_symbol: str) -> float:
+        """Get min volume of a contract"""
+        return self.strategy_engine.get_min_volume(self, vt_symbol)
+
     def load_bars(self, days: int, interval: Interval) -> None:
         """Load history data to init a strategy"""
         self.strategy_engine.load_bars(self, days, interval)
