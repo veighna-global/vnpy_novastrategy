@@ -13,12 +13,6 @@ from .expression import calculate_by_expression
 class DataTable:
     """Time-series data container for crypto strategy"""
 
-    interval_freq_map = {
-        Interval.MINUTE: "min",
-        Interval.HOUR: "h",
-        Interval.DAILY: "d"
-    }
-
     def __init__(
         self,
         vt_symbols: list[str],
@@ -44,6 +38,50 @@ class DataTable:
 
         self.feature_expressions: dict[str, str] = {}
 
+    def add_feature(self, name: str, expression: str) -> None:
+        """Add feature expression for querying df"""
+        self.feature_expressions[name] = expression
+
+    def get_df(self) -> Optional[pd.DataFrame]:
+        """Get current dataframe"""
+        if self.df is None:
+            return None
+
+        end_ix: int = self.ix * self.symbol_count
+        start_ix: int = max(self.ix - self.size, 0) * self.symbol_count
+
+        df: pd.DataFrame = self.df.iloc[start_ix: end_ix].copy()
+
+        for name, expression in self.feature_expressions.items():
+            df[name] = calculate_by_expression(df, expression)
+
+        return df
+
+    def update_bars(self, bars: dict[str, BarData]) -> bool:
+        """Update bars data into table"""
+        pass
+
+
+class LiveDataTable(DataTable):
+    """Data table for live trading"""
+
+    interval_freq_map = {
+        Interval.MINUTE: "min",
+        Interval.HOUR: "h",
+        Interval.DAILY: "d"
+    }
+
+    def __init__(
+        self,
+        vt_symbols: list[str],
+        size: int = 100,
+        window: int = 1,
+        interval: Interval = Interval.MINUTE,
+        extra_fields: list[str] = None
+    ) -> None:
+        """"""
+        super().__init__(vt_symbols, size, window, interval, extra_fields)
+
         # initialize DataAggregator
         if interval == Interval.MINUTE:
             agg_window: int = window
@@ -64,10 +102,6 @@ class DataTable:
     def update_bars(self, bars: dict[str, BarData]) -> bool:
         """Update bars data into table"""
         pass
-
-    def add_feature(self, name: str, expression: str) -> None:
-        """Add feature expression for querying df"""
-        self.feature_expressions[name] = expression
 
     def _update_minute_bars(self, bars: dict[str, BarData]) -> bool:
         """Update minute bars to aggregate window bars"""
@@ -212,9 +246,46 @@ class DataTable:
 
         return df
 
+
+class BacktestingDataTable(DataTable):
+    """Data table for backtesting"""
+
+    def __init__(
+        self,
+        vt_symbols: list[str],
+        size: int = 100,
+        window: int = 1,
+        interval: Interval = Interval.MINUTE,
+        extra_fields: list[str] = None
+    ) -> None:
+        """"""
+        super().__init__(vt_symbols, size, window, interval, extra_fields)
+
+        self.symbol_count: int = len(self.vt_symbols)
+
+        self.window_ends: list[datetime] = []
+        self.next_end: datetime = None
+
+    def update_bars(self, bars: dict[str, BarData]) -> bool:
+        """Update bars data into table"""
+        for bar in bars.values():
+            dt: datetime = bar.datetime
+            break
+
+        if dt == self.next_end:
+            self.ix += 1
+
+            if self.ix < len(self.window_ends):
+                self.next_end = self.window_ends[self.ix]
+
     def update_history(self, history: list[dict[str, BarData]]) -> None:
         """Update bars history into table"""
         if self.interval == Interval.MINUTE and self.window == 1:
+            for bars in history:
+                for bar in bars.values():
+                    self.window_ends.append(bar.datetime)
+                    break
+
             self._update_history(history)
         else:
             window_history: list = []
@@ -229,6 +300,8 @@ class DataTable:
 
                 if window_bars:
                     window_history.append(bars)
+
+                    self.window_ends.append(bar.datetime)
 
             self._update_history(window_history)
 
@@ -264,7 +337,11 @@ class DataTable:
         for name, expression in self.feature_expressions.items():
             df[name] = calculate_by_expression(df, expression)
 
+        # 初始化下一结束时间
+        self.next_end = self.window_ends[0]
+
         # 完成数据准备
+        self.inited = True
         self.df = df
 
 

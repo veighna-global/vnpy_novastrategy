@@ -33,7 +33,7 @@ from .base import APP_NAME
 from .engine import StrategyEngine
 from .template import StrategyTemplate, Parameter, Variable
 from .backtesting import BacktestingEngine
-from .table import DataTable
+from .table import DataTable, LiveDataTable, BacktestingDataTable
 from .handler import TickHandler
 
 
