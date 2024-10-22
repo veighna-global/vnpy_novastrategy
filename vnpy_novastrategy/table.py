@@ -212,6 +212,61 @@ class DataTable:
 
         return df
 
+    def update_history(self, history: list[dict[str, BarData]]) -> None:
+        """Update bars history into table"""
+        if self.interval == Interval.MINUTE and self.window == 1:
+            self._update_history(history)
+        else:
+            window_history: list = []
+            window_bars: dict = {}
+
+            for bars in history:
+                for vt_symbol, bar in bars.items():
+                    bg: DataAggregator = self.aggregators[vt_symbol]
+                    window_bar: BarData = bg.update_bar(bar)
+                    if window_bar:
+                        window_bars[vt_symbol] = window_bar
+
+                if window_bars:
+                    window_history.append(bars)
+
+            self._update_history(window_history)
+
+    def _update_history(self, history: list[dict[str, BarData]]) -> None:
+        """Update bars history into table"""
+        # 合并数据列表
+        records: list[dict] = []
+
+        for bars in history:
+            for bar in bars.values():
+                d: dict = {
+                    "datetime": bar.datetime,
+                    "vt_symbol": bar.vt_symbol,
+                    "open_price": bar.open_price,
+                    "high_price": bar.high_price,
+                    "low_price": bar.low_price,
+                    "close_price": bar.close_price,
+                    "volume": bar.volume,
+                    "turnover": bar.turnover,
+                    "open_interest": bar.open_interest
+                }
+
+                for field in self.extra_fields:
+                    d[field] = bar.extra.get(field, None)
+
+                records.append(d)
+
+        # 创建DataFrame
+        df: pd.DataFrame = pd.DataFrame.from_records(records)
+        df.set_index(["datetime", "vt_symbol"], inplace=True)
+
+        # 计算特征列
+        for name, expression in self.feature_expressions.items():
+            df[name] = calculate_by_expression(df, expression)
+
+        # 完成数据准备
+        self.df = df
+
 
 class DataAggregator:
     """Bar data aggregator for crypto strategy"""
