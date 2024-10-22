@@ -99,10 +99,6 @@ class LiveDataTable(DataTable):
         else:
             self.update_bars = self._update_window_bars
 
-    def update_bars(self, bars: dict[str, BarData]) -> bool:
-        """Update bars data into table"""
-        pass
-
     def _update_minute_bars(self, bars: dict[str, BarData]) -> bool:
         """Update minute bars to aggregate window bars"""
         window_bars: dict = {}
@@ -277,6 +273,10 @@ class BacktestingDataTable(DataTable):
 
             if self.ix < len(self.window_ends):
                 self.next_end = self.window_ends[self.ix]
+
+            return True
+        else:
+            return False
 
     def update_history(self, history: list[dict[str, BarData]]) -> None:
         """Update bars history into table"""
