@@ -24,6 +24,7 @@ from vnpy_evo.trader.optimize import (
 )
 
 from .template import StrategyTemplate
+from .table import BacktestingDataTable
 
 
 INTERVAL_DELTA_MAP: dict[Interval, timedelta] = {
@@ -60,6 +61,7 @@ class BacktestingEngine:
         self.strategy: StrategyTemplate = None
         self.bars: dict[str, BarData] = {}
         self.datetime: datetime = None
+        self.tables: list[BacktestingDataTable] = []
 
         self.days: int = 0
         self.history_data: dict[str, dict] = defaultdict(dict)
@@ -614,6 +616,32 @@ class BacktestingEngine:
 
             self.strategy.update_trade(trade)
             self.trades[trade.vt_tradeid] = trade
+
+    def new_table(
+        self,
+        vt_symbols: list[str],
+        size: int,
+        window: int,
+        interval: Interval,
+        extra_fields: list[str]
+    ) -> BacktestingDataTable:
+        """Create a new DataTable"""
+        table: BacktestingDataTable = BacktestingDataTable(
+            vt_symbols=vt_symbols,
+            size=size,
+            window=window,
+            interval=interval,
+            extra_fields=extra_fields,
+        )
+
+        # Update history data into table
+        dts: list = list(self.history_data.keys())
+        dts.sort()
+
+        history: list = [self.history_data[dt] for dt in dts]
+        table.update_history(history)
+
+        return table
 
     def load_bars(
         self,

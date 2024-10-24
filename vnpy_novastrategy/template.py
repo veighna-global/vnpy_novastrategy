@@ -5,6 +5,8 @@ from vnpy_evo.trader.constant import Interval, Direction, Offset
 from vnpy_evo.trader.object import BarData, TickData, OrderData, TradeData
 from vnpy_evo.trader.utility import virtual
 
+from .table import DataTable
+
 if TYPE_CHECKING:
     from .engine import StrategyEngine
 
@@ -222,6 +224,23 @@ class StrategyTemplate:
         """Sync strategy data into files"""
         if self.trading:
             self.strategy_engine.sync_strategy_data(self)
+
+    def new_table(
+        self,
+        vt_symbols: list[str],
+        size: int = 100,
+        window: int = 1,
+        interval: Interval = Interval.MINUTE,
+        extra_fields: list[str] = None
+    ) -> DataTable:
+        """Create a new DataTable"""
+        return self.strategy_engine.new_table(
+            vt_symbols=vt_symbols,
+            size=size,
+            window=window,
+            interval=interval,
+            extra_fields=extra_fields,
+        )
 
 
 FieldValue = Union[str, int, float, bool]

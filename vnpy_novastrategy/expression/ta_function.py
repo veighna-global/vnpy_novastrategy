@@ -3,6 +3,7 @@
 """
 
 import talib
+import pandas as pd
 
 
 ta_dema = talib.DEMA
@@ -15,4 +16,13 @@ ta_mfi = talib.MFI
 ta_cmo = talib.CMO
 ta_mom = talib.MOM
 ta_roc = talib.ROC
-ta_atr = talib.ATR
+
+
+def ta_atr(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
+    """Calculate ATR"""
+    return talib.ATR(
+        high.fillna(0),
+        low.fillna(0),
+        close.fillna(0),
+        window
+    )

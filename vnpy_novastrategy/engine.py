@@ -42,6 +42,7 @@ from .base import (
     EVENT_NOVA_STRATEGY
 )
 from .template import StrategyTemplate
+from .table import LiveDataTable
 
 
 class StrategyEngine(BaseEngine):
@@ -193,6 +194,23 @@ class StrategyEngine(BaseEngine):
             return contract.min_volume
         else:
             return None
+
+    def new_table(
+        self,
+        vt_symbols: list[str],
+        size: int,
+        window: int,
+        interval: Interval,
+        extra_fields: list[str]
+    ) -> LiveDataTable:
+        """Create a new DataTable"""
+        return LiveDataTable(
+            vt_symbols=vt_symbols,
+            size=size,
+            window=window,
+            interval=interval,
+            extra_fields=extra_fields,
+        )
 
     def load_bars(self, strategy: StrategyTemplate, days: int, interval: Interval) -> None:
         """Load history bar data for portfolio"""

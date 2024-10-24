@@ -38,6 +38,21 @@ class DataTable:
 
         self.feature_expressions: dict[str, str] = {}
 
+        # initialize DataAggregator
+        self.agg_window: int = 0
+
+        if interval == Interval.MINUTE:
+            self.agg_window = window
+        elif interval == Interval.HOUR:
+            self.agg_window = window * 60
+        elif interval == Interval.DAILY:
+            self.agg_window = 240
+
+        if self.agg_window > 1:
+            self.aggregators: dict[str, DataAggregator] = {}
+            for vt_symbol in vt_symbols:
+                self.aggregators[vt_symbol] = DataAggregator(self.agg_window)
+
     def add_feature(self, name: str, expression: str) -> None:
         """Add feature expression for querying df"""
         self.feature_expressions[name] = expression
@@ -82,19 +97,7 @@ class LiveDataTable(DataTable):
         """"""
         super().__init__(vt_symbols, size, window, interval, extra_fields)
 
-        # initialize DataAggregator
-        if interval == Interval.MINUTE:
-            agg_window: int = window
-        elif interval == Interval.HOUR:
-            agg_window: int = window * 60
-        elif interval == Interval.DAILY:
-            agg_window: int = 240
-
-        if agg_window > 1:
-            self.aggregators: dict[str, DataAggregator] = {}
-            for vt_symbol in vt_symbols:
-                self.aggregators[vt_symbol] = DataAggregator(agg_window)
-
+        if self.agg_window > 1:
             self.update_bars = self._update_minute_bars
         else:
             self.update_bars = self._update_window_bars
@@ -280,7 +283,7 @@ class BacktestingDataTable(DataTable):
 
     def update_history(self, history: list[dict[str, BarData]]) -> None:
         """Update bars history into table"""
-        if self.interval == Interval.MINUTE and self.window == 1:
+        if self.agg_window == 1:
             for bars in history:
                 for bar in bars.values():
                     self.window_ends.append(bar.datetime)
@@ -289,9 +292,10 @@ class BacktestingDataTable(DataTable):
             self._update_history(history)
         else:
             window_history: list = []
-            window_bars: dict = {}
 
             for bars in history:
+                window_bars: dict = {}
+
                 for vt_symbol, bar in bars.items():
                     bg: DataAggregator = self.aggregators[vt_symbol]
                     window_bar: BarData = bg.update_bar(bar)
@@ -299,8 +303,7 @@ class BacktestingDataTable(DataTable):
                         window_bars[vt_symbol] = window_bar
 
                 if window_bars:
-                    window_history.append(bars)
-
+                    window_history.append(window_bars)
                     self.window_ends.append(bar.datetime)
 
             self._update_history(window_history)
@@ -353,7 +356,7 @@ class DataAggregator:
         self.agg_window: int = agg_window
         self.window_bar: BarData = None
 
-    def update_bar(self, bar: BarData) -> None:
+    def update_bar(self, bar: BarData) -> Optional[BarData]:
         """Update 1 minute bar into aggregator"""
         # If not inited, create window bar object
         if not self.window_bar:
@@ -398,5 +401,6 @@ class DataAggregator:
         if not (minute_passed + 1) % self.agg_window:
             window_bar = self.window_bar
             self.window_bar = None
-
-        return window_bar
+            return window_bar
+        else:
+            return None
