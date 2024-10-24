@@ -37,7 +37,7 @@ from .table import DataTable, LiveDataTable, BacktestingDataTable
 from .handler import TickHandler
 
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 
 class NovaStrategyApp(BaseApp):
