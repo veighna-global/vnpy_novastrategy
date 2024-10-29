@@ -35,6 +35,7 @@ from .template import StrategyTemplate, Parameter, Variable
 from .backtesting import BacktestingEngine
 from .table import DataTable, LiveDataTable, BacktestingDataTable
 from .handler import TickHandler
+from .expression import register_function
 
 
 __version__ = "0.4.0"
