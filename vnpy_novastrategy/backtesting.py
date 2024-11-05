@@ -78,6 +78,8 @@ class BacktestingEngine:
         self.daily_results: dict[date, PortfolioDailyResult] = {}
         self.daily_df: DataFrame = None
 
+        self.tables: list[BacktestingDataTable] = []
+
     def set_parameters(
         self,
         interval: Interval,
@@ -153,8 +155,13 @@ class BacktestingEngine:
         """Start backtesting"""
         self.strategy.on_init()
 
+        # Update history data into table
         dts: list = list(self.history_data.keys())
         dts.sort()
+
+        history: list = [self.history_data[dt] for dt in dts]
+        for table in self.tables:
+            table.update_history(history)
 
         # Initialize the strategy with the head part of data
         day_count: int = 0
@@ -634,13 +641,7 @@ class BacktestingEngine:
             extra_fields=extra_fields,
         )
 
-        # Update history data into table
-        dts: list = list(self.history_data.keys())
-        dts.sort()
-
-        history: list = [self.history_data[dt] for dt in dts]
-        table.update_history(history)
-
+        self.tables.append(table)
         return table
 
     def load_bars(

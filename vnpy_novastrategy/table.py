@@ -59,18 +59,7 @@ class DataTable:
 
     def get_df(self) -> Optional[pd.DataFrame]:
         """Get current dataframe"""
-        if self.df is None:
-            return None
-
-        end_ix: int = self.ix * self.symbol_count
-        start_ix: int = max(self.ix - self.size, 0) * self.symbol_count
-
-        df: pd.DataFrame = self.df.iloc[start_ix: end_ix].copy()
-
-        for name, expression in self.feature_expressions.items():
-            df[name] = calculate_by_expression(df, expression)
-
-        return df
+        pass
 
     def update_bars(self, bars: dict[str, BarData]) -> bool:
         """Update bars data into table"""
@@ -346,6 +335,18 @@ class BacktestingDataTable(DataTable):
         # 完成数据准备
         self.inited = True
         self.df = df
+
+    def get_df(self) -> Optional[pd.DataFrame]:
+        """Get current dataframe"""
+        if self.df is None:
+            return None
+
+        symbol_count: int = len(self.vt_symbols)
+        end_ix: int = self.ix * symbol_count
+        start_ix: int = max(self.ix - self.size, 0) * symbol_count
+
+        df: pd.DataFrame = self.df.iloc[start_ix: end_ix]
+        return df
 
 
 class DataAggregator:
