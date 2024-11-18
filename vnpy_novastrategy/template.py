@@ -38,7 +38,7 @@ class StrategyTemplate:
         self.trading: bool = False
 
         self.pos_data: dict[str, int] = defaultdict(int)
-        self.target_pos: dict[str, int] = defaultdict(int)
+        self.target_data: dict[str, int] = defaultdict(int)
 
         self.active_orderids: set[str] = set()
 
