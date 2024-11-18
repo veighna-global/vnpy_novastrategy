@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from vnpy_evo.trader.constant import Interval, Direction, Offset
 from vnpy_evo.trader.object import BarData, TickData, OrderData, TradeData
-from vnpy_evo.trader.utility import virtual
+from vnpy_evo.trader.utility import virtual, round_to
 
 from .table import DataTable
 
@@ -38,6 +38,7 @@ class StrategyTemplate:
         self.trading: bool = False
 
         self.pos_data: dict[str, int] = defaultdict(int)
+        self.target_pos: dict[str, int] = defaultdict(int)
 
         self.active_orderids: set[str] = set()
 
@@ -191,9 +192,44 @@ class StrategyTemplate:
         for vt_orderid in list(self.active_orderids):
             self.cancel_order(vt_orderid)
 
+    def execute_trading(self, bars: dict[str, BarData], tick_add: int) -> None:
+        """Execute trading according to the difference between target and pos"""
+        # Cancel all existing orders
+        self.cancel_all()
+
+        # Send new order according to the difference between target and pos
+        for vt_symbol, target in self.target_data.items():
+            bar: BarData = bars.get(vt_symbol, None)
+            if not bar:
+                continue
+
+            min_volume: float = self.get_min_volume(vt_symbol)
+            pos: float = self.get_pos(vt_symbol)
+
+            trading_volume: int = round_to(target - pos, min_volume)
+            if not trading_volume:
+                continue
+
+            pricetick: float = self.get_pricetick(vt_symbol)
+
+            if trading_volume > 0:
+                buy_price: float = round_to(bar.close_price - pricetick * tick_add, pricetick)
+                self.buy(vt_symbol, buy_price, abs(trading_volume))
+            elif trading_volume < 0:
+                short_price: float = round_to(bar.close_price + pricetick * tick_add, pricetick)
+                self.short(vt_symbol, short_price, abs(trading_volume))
+
     def get_pos(self, vt_symbol: str) -> int:
         """Get current pos of a contract"""
         return self.pos_data.get(vt_symbol, 0)
+
+    def set_target(self, vt_symbol: str, target: int) -> None:
+        """Set target pos"""
+        self.target_data[vt_symbol] = target
+
+    def get_target(self, vt_symbol: str) -> int:
+        """Get target pos"""
+        return self.target_data.get(vt_symbol, 0)
 
     def write_log(self, msg: str) -> None:
         """Write log"""

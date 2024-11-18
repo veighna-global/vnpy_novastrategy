@@ -402,6 +402,5 @@ class DataAggregator:
         if not (minute_passed + 1) % self.agg_window:
             window_bar = self.window_bar
             self.window_bar = None
-            return window_bar
-        else:
-            return None
+
+        return window_bar

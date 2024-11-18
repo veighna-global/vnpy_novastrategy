@@ -48,8 +48,8 @@ from .table import LiveDataTable
 class StrategyEngine(BaseEngine):
     """Nova strategy engine"""
 
-    setting_filename: str = "portfolio_strategy_setting.json"
-    data_filename: str = "portfolio_strategy_data.json"
+    setting_filename: str = "nova_strategy_setting.json"
+    data_filename: str = "nova_strategy_data.json"
 
     def __init__(self, main_engine: MainEngine, event_engine: EventEngine) -> None:
         """"""
