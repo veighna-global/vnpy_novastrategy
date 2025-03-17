@@ -15,8 +15,6 @@ class StrategyTemplate:
     """Strategy template"""
 
     author: str = ""
-    parameters: list = []
-    variables: list = []
 
     def __init__(
         self,
@@ -41,6 +39,15 @@ class StrategyTemplate:
         self.target_data: dict[str, int] = defaultdict(int)
 
         self.active_orderids: set[str] = set()
+
+        # Initialize parameters and variables lists
+        if not hasattr(self, "parameters"):
+            self.parameters: list[str] = []
+
+        if not hasattr(self, "variables"):
+            self.variables: list[str] = []
+
+        self.variables = ["inited", "trading"] + self.variables
 
         # Update strategy setting
         self.update_setting(setting)
