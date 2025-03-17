@@ -275,7 +275,7 @@ class StraetgyWidget(QtWidgets.QFrame):
         editor: SettingEditor = SettingEditor(parameters, strategy_name=strategy_name)
         n: int = editor.exec_()
 
-        if n == editor.Accepted:
+        if n == editor.DialogCode.Accepted:
             setting: dict = editor.get_setting()
             self.strategy_engine.edit_strategy(strategy_name, setting)
 

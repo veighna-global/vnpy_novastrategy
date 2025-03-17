@@ -3,6 +3,7 @@ from vnpy_novastrategy import (
     BarData, TickData,
     TradeData, OrderData,
     ArrayManager, Interval,
+    Parameter, Variable,
     datetime
 )
 
@@ -12,29 +13,16 @@ class SmaStrategy(StrategyTemplate):
 
     author: str = "VeighNa Global"
 
-    fast_window: int = 5
-    slow_window: int = 20
-    trading_size: int = 1
+    fast_window: int = Parameter(5)
+    slow_window: int = Parameter(20)
+    trading_size: int = Parameter(1)
+    test: bool = Parameter(False)
 
-    trading_symbol: str = ""
-    fast_ma: int = 0
-    slow_ma: int = 0
-    trading_target: int = 0
-    trading_pos: int = 0
-
-    parameters: list = [
-        "fast_window",
-        "slow_window",
-        "trading_size",
-    ]
-
-    variables: list = [
-        "trading_symbol",
-        "fast_ma",
-        "slow_ma",
-        "trading_target",
-        "trading_pos",
-    ]
+    trading_symbol: str = Variable("")
+    fast_ma: int = Variable(0)
+    slow_ma: int = Variable(0)
+    trading_target: int = Variable(0)
+    trading_pos: int = Variable(0)
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
