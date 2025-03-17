@@ -124,6 +124,19 @@ class StrategyEngine(BaseEngine):
 
         self._call_strategy_func(strategy, strategy.update_trade, trade)
 
+    def subscribe_data(self, strategy: StrategyTemplate, vt_symbol: str) -> bool:
+        """Subscribe new data"""
+        contract = self.main_engine.get_contract(vt_symbol)
+        if not contract:
+            return False
+
+        req = SubscribeRequest(contract.symbol, contract.exchange)
+        self.main_engine.subscribe(req, contract.gateway_name)
+
+        self.symbol_strategy_map[vt_symbol].append(strategy)
+
+        return True
+
     def send_order(
         self,
         strategy: StrategyTemplate,

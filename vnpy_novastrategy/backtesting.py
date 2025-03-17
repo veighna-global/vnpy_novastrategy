@@ -653,6 +653,10 @@ class BacktestingEngine:
         """Load history bar data"""
         self.days = days
 
+    def subscribe_data(self, strategy: StrategyTemplate, vt_symbol: str) -> bool:
+        """Subscribe new data"""
+        return True
+
     def send_order(
         self,
         strategy: StrategyTemplate,

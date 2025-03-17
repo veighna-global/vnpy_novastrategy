@@ -285,6 +285,17 @@ class StrategyTemplate:
             extra_fields=extra_fields,
         )
 
+    def subscribe_data(self, vt_symbol: str) -> bool:
+        """Subscribe new data"""
+        if vt_symbol in self.vt_symbols:
+            return True
+
+        result: bool = self.strategy_engine.subscribe_data(self, vt_symbol)
+        if result:
+            self.vt_symbols.add(vt_symbol)
+
+        return result
+
 
 FieldValue = Union[str, int, float, bool]
 
