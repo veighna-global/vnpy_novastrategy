@@ -220,10 +220,10 @@ class StrategyTemplate:
             pricetick: float = self.get_pricetick(vt_symbol)
 
             if trading_volume > 0:
-                buy_price: float = round_to(bar.close_price - pricetick * tick_add, pricetick)
+                buy_price: float = round_to(bar.close_price + pricetick * tick_add, pricetick)
                 self.buy(vt_symbol, buy_price, abs(trading_volume))
             elif trading_volume < 0:
-                short_price: float = round_to(bar.close_price + pricetick * tick_add, pricetick)
+                short_price: float = round_to(bar.close_price - pricetick * tick_add, pricetick)
                 self.short(vt_symbol, short_price, abs(trading_volume))
 
     def get_pos(self, vt_symbol: str) -> int:
