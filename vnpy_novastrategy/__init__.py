@@ -47,10 +47,10 @@ class NovaStrategyApp(BaseApp):
     app_name: str = APP_NAME
     app_module: str = __module__
     app_path: Path = Path(__file__).parent
-    display_name: str = "Nova Strategy"
+    display_name: str = "NovaStrategy"
     engine_class: type[StrategyEngine] = StrategyEngine
     widget_name: str = "NovaStrategyManager"
-    icon_name: str = str(app_path.joinpath("ui", "strategy.ico"))
+    icon_name: str = str(app_path.joinpath("ui", "nova.ico"))
 
 
 __all__ = [

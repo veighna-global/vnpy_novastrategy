@@ -3,7 +3,7 @@ from typing import cast
 from vnpy.event import Event, EventEngine
 from vnpy.trader.engine import MainEngine
 from vnpy.trader.ui import QtCore, QtGui, QtWidgets
-from vnpy.trader.ui.monitor import (
+from vnpy.trader.ui.widget import (
     MsgCell,
     TimeCell,
     BaseMonitor

@@ -22,7 +22,7 @@ class StrategyTemplate:
 
     def __init__(
         self,
-        strategy_engine: "StrategyEngine" | "BacktestingEngine",
+        strategy_engine: "StrategyEngine | BacktestingEngine",
         strategy_name: str,
         vt_symbols: list[str],
         setting: dict
