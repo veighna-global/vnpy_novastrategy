@@ -9,6 +9,7 @@ from .table import DataTable
 
 if TYPE_CHECKING:
     from .engine import StrategyEngine
+    from .backtesting import BacktestingEngine
 
 
 FieldValue = TypeVar("FieldValue", int, float, str, bool)
@@ -21,7 +22,7 @@ class StrategyTemplate:
 
     def __init__(
         self,
-        strategy_engine: "StrategyEngine",
+        strategy_engine: "StrategyEngine" | "BacktestingEngine",
         strategy_name: str,
         vt_symbols: list[str],
         setting: dict
@@ -29,7 +30,7 @@ class StrategyTemplate:
         """
         Normally no need to call this __init__ when implementing a strategy.
         """
-        self.strategy_engine: StrategyEngine = strategy_engine
+        self.strategy_engine: StrategyEngine | BacktestingEngine = strategy_engine
 
         self.strategy_name: str = strategy_name
         self.vt_symbols: list[str] = vt_symbols
@@ -249,7 +250,7 @@ class StrategyTemplate:
         """Get pricetick of a contract"""
         return self.strategy_engine.get_pricetick(self, vt_symbol)
 
-    def get_size(self, vt_symbol: str) -> int:
+    def get_size(self, vt_symbol: str) -> float:
         """Get size of a contract"""
         return self.strategy_engine.get_size(self, vt_symbol)
 
