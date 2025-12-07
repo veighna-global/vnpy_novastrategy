@@ -1,7 +1,7 @@
 from typing import Callable
 from datetime import datetime
 
-from vnpy_evo.trader.object import BarData, TickData
+from vnpy.trader.object import BarData, TickData
 
 
 class TickHandler:

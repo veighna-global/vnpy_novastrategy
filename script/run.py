@@ -1,8 +1,8 @@
-from vnpy_evo.event import EventEngine
-from vnpy_evo.trader.engine import MainEngine
-from vnpy_evo.trader.ui import MainWindow, create_qapp
+from vnpy.event import EventEngine
+from vnpy.trader.engine import MainEngine
+from vnpy.trader.ui import MainWindow, create_qapp
 
-from vnpy_binance import BinanceLinearGateway
+from vnpy_binance import BinanceLinearGateway       # type: ignore
 from vnpy_novastrategy import NovaStrategyApp
 
 

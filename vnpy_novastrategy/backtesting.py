@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 from typing import Optional
 from functools import lru_cache, partial
@@ -12,11 +13,11 @@ from plotly.subplots import make_subplots
 from pandas import DataFrame
 from tqdm import tqdm
 
-from vnpy_evo.trader.constant import Direction, Offset, Interval, Status
-from vnpy_evo.trader.database import get_database, BaseDatabase
-from vnpy_evo.trader.object import OrderData, TradeData, BarData
-from vnpy_evo.trader.utility import round_to, extract_vt_symbol, get_file_path
-from vnpy_evo.trader.optimize import (
+from vnpy.trader.constant import Direction, Offset, Interval, Status
+from vnpy.trader.database import get_database, BaseDatabase
+from vnpy.trader.object import OrderData, TradeData, BarData
+from vnpy.trader.utility import round_to, extract_vt_symbol, get_file_path
+from vnpy.trader.optimize import (
     OptimizationSetting,
     check_optimization_setting,
     run_bf_optimization,
@@ -471,7 +472,7 @@ class BacktestingEngine:
         with open(temp_path, mode="wb") as f:
             pickle.dump(self.history_data, f)
 
-        evaluate_func: callable = wrap_evaluate(self, optimization_setting.target_name)
+        evaluate_func: Callable = wrap_evaluate(self, optimization_setting.target_name)
         results: list = run_bf_optimization(
             evaluate_func,
             optimization_setting,
@@ -504,7 +505,7 @@ class BacktestingEngine:
         with open(temp_path, mode="wb") as f:
             pickle.dump(self.history_data, f)
 
-        evaluate_func: callable = wrap_evaluate(self, optimization_setting.target_name)
+        evaluate_func: Callable = wrap_evaluate(self, optimization_setting.target_name)
         results: list = run_ga_optimization(
             evaluate_func,
             optimization_setting,
@@ -940,9 +941,9 @@ def evaluate(
     return (str(setting), target_value, statistics)
 
 
-def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> callable:
+def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> Callable:
     """Wrap the entire bacaktesting process for multiprocessing task"""
-    func: callable = partial(
+    func: Callable = partial(
         evaluate,
         target_name,
         engine.strategy_class,

@@ -19,16 +19,16 @@ class SmaStrategy(StrategyTemplate):
     test: bool = Parameter(False)
 
     trading_symbol: str = Variable("")
-    fast_ma: int = Variable(0)
-    slow_ma: int = Variable(0)
-    trading_target: int = Variable(0)
-    trading_pos: int = Variable(0)
+    fast_ma: float = Variable(0)
+    slow_ma: float = Variable(0)
+    trading_target: float = Variable(0)
+    trading_pos: float = Variable(0)
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
         self.trading_symbol: str = self.vt_symbols[0]
 
-        self.bar_dt: datetime = None
+        self.bar_dt: datetime | None = None
 
         self.am: ArrayManager = ArrayManager()
 
@@ -46,7 +46,10 @@ class SmaStrategy(StrategyTemplate):
 
     def on_tick(self, tick: TickData) -> None:
         """Callback of tick data update"""
-        bar: BarData = tick.extra.get("bar", None)
+        if not tick.extra:
+            return
+
+        bar: BarData | None = tick.extra.get("bar", None)
         if not bar:
             return
         self.write_log(str(bar))

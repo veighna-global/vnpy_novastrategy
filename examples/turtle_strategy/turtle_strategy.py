@@ -1,4 +1,4 @@
-from vnpy_evo.trader.utility import round_to
+from vnpy.trader.utility import round_to
 
 from vnpy_novastrategy import (
     StrategyTemplate,

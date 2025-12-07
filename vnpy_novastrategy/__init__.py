@@ -23,11 +23,12 @@
 
 from pathlib import Path
 from datetime import datetime
+from typing import Type
 
-from vnpy_evo.trader.app import BaseApp
-from vnpy_evo.trader.constant import Direction, Interval
-from vnpy_evo.trader.object import TickData, BarData, TradeData, OrderData
-from vnpy_evo.trader.utility import BarGenerator, ArrayManager, round_to
+from vnpy.trader.app import BaseApp
+from vnpy.trader.constant import Direction, Interval, Offset, OrderType
+from vnpy.trader.object import TickData, BarData, TradeData, OrderData
+from vnpy.trader.utility import BarGenerator, ArrayManager, round_to
 
 from .base import APP_NAME
 from .engine import StrategyEngine
@@ -48,6 +49,33 @@ class NovaStrategyApp(BaseApp):
     app_module: str = __module__
     app_path: Path = Path(__file__).parent
     display_name: str = "Nova Strategy"
-    engine_class: StrategyEngine = StrategyEngine
+    engine_class: Type[StrategyEngine] = StrategyEngine
     widget_name: str = "NovaStrategyManager"
     icon_name: str = str(app_path.joinpath("ui", "strategy.ico"))
+
+
+__all__ = [
+    "NovaStrategyApp",
+    "StrategyEngine",
+    "StrategyTemplate",
+    "Parameter",
+    "Variable",
+    "BacktestingEngine",
+    "DataTable",
+    "LiveDataTable",
+    "BacktestingDataTable",
+    "TickHandler",
+    "register_function",
+    "BarData",
+    "TickData",
+    "TradeData",
+    "OrderData",
+    "ArrayManager",
+    "BarGenerator",
+    "Direction",
+    "Interval",
+    "Offset",
+    "OrderType",
+    "datetime",
+    "round_to",
+]

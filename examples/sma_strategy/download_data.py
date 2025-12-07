@@ -1,11 +1,11 @@
 from datetime import datetime
 from time import sleep
 
-from vnpy_evo.trader.database import get_database
-from vnpy_evo.event import EventEngine
-from vnpy_evo.trader.object import HistoryRequest
-from vnpy_evo.trader.constant import Interval, Exchange
-from vnpy_evo.trader.event import EVENT_LOG
+from vnpy.trader.database import get_database
+from vnpy.event import EventEngine
+from vnpy.trader.object import HistoryRequest
+from vnpy.trader.constant import Interval, Exchange
+from vnpy.trader.event import EVENT_LOG
 
 from vnpy_binance import BinanceLinearGateway
 

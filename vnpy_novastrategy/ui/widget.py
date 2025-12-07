@@ -7,10 +7,10 @@ from qfluentwidgets import (
     ScrollArea,
 )
 
-from vnpy_evo.event import Event, EventEngine
-from vnpy_evo.trader.engine import MainEngine
-from vnpy_evo.trader.ui import QtCore, QtGui, QtWidgets
-from vnpy_evo.trader.ui.monitor import (
+from vnpy.event import Event, EventEngine
+from vnpy.trader.engine import MainEngine
+from vnpy.trader.ui import QtCore, QtGui, QtWidgets
+from vnpy.trader.ui.monitor import (
     MsgCell,
     TimeCell,
     BaseMonitor
@@ -117,7 +117,7 @@ class NovaStrategyManager(QtWidgets.QWidget):
             widget: StraetgyWidget = self.widgets[strategy_name]
             widget.update_data(data)
         else:
-            widget: StraetgyWidget = StraetgyWidget(self, self.strategy_engine, data)
+            widget = StraetgyWidget(self, self.strategy_engine, data)
             self.scroll_layout.insertWidget(0, widget)
             self.widgets[strategy_name] = widget
 
@@ -138,7 +138,7 @@ class NovaStrategyManager(QtWidgets.QWidget):
 
         if n == editor.DialogCode.Accepted:
             setting: dict = editor.get_setting()
-            vt_symbols: str = setting.pop("vt_symbols").split(",")
+            vt_symbols: list[str] = setting.pop("vt_symbols").split(",")
             strategy_name: str = setting.pop("strategy_name")
 
             self.strategy_engine.add_strategy(
@@ -228,7 +228,7 @@ class StraetgyWidget(QtWidgets.QFrame):
 
     def update_data(self, data: dict) -> None:
         """Update strategy data"""
-        self._data: dict = data
+        self._data = data
 
         self.parameters_monitor.update_data(data["parameters"])
         self.variables_monitor.update_data(data["variables"])
@@ -384,8 +384,8 @@ class SettingEditor(QtWidgets.QDialog):
             parameters.update(self.parameters)
         else:
             self.setWindowTitle(f"Edit parameters: {self.strategy_name}")
-            button_text: str = "Confirm"
-            parameters: dict = self.parameters
+            button_text = "Confirm"
+            parameters = self.parameters
 
         for name, value in parameters.items():
             type_ = type(value)
@@ -394,11 +394,11 @@ class SettingEditor(QtWidgets.QDialog):
             edit.setText(str(value))
 
             if type_ is int:
-                validator: QtGui.QIntValidator = QtGui.QIntValidator()
-                edit.setValidator(validator)
+                int_validator: QtGui.QIntValidator = QtGui.QIntValidator()
+                edit.setValidator(int_validator)
             elif type_ is float:
-                validator: QtGui.QDoubleValidator = QtGui.QDoubleValidator()
-                edit.setValidator(validator)
+                double_validator: QtGui.QDoubleValidator = QtGui.QDoubleValidator()
+                edit.setValidator(double_validator)
 
             form.addRow(f"{name} {type_}", edit)
 
@@ -421,11 +421,11 @@ class SettingEditor(QtWidgets.QDialog):
             edit, type_ = tp
             value_text = edit.text()
 
-            if type_ == bool:
+            if isinstance(type_, bool):
                 if value_text == "True":
                     value: bool = True
                 else:
-                    value: bool = False
+                    value = False
             else:
                 value = type_(value_text)
 

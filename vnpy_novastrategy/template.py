@@ -1,14 +1,17 @@
-from typing import Union, Type, TYPE_CHECKING
+from typing import Union, Type, TYPE_CHECKING, TypeVar, Generic, overload
 from collections import defaultdict
 
-from vnpy_evo.trader.constant import Interval, Direction, Offset
-from vnpy_evo.trader.object import BarData, TickData, OrderData, TradeData
-from vnpy_evo.trader.utility import virtual, round_to
+from vnpy.trader.constant import Interval, Direction, Offset
+from vnpy.trader.object import BarData, TickData, OrderData, TradeData
+from vnpy.trader.utility import virtual, round_to
 
 from .table import DataTable
 
 if TYPE_CHECKING:
     from .engine import StrategyEngine
+
+
+T = TypeVar("T", int, float, str, bool)
 
 
 class StrategyTemplate:
@@ -35,8 +38,8 @@ class StrategyTemplate:
         self.inited: bool = False
         self.trading: bool = False
 
-        self.pos_data: dict[str, int] = defaultdict(int)
-        self.target_data: dict[str, int] = defaultdict(int)
+        self.pos_data: dict[str, float] = defaultdict(float)
+        self.target_data: dict[str, float] = defaultdict(float)
 
         self.active_orderids: set[str] = set()
 
@@ -206,14 +209,14 @@ class StrategyTemplate:
 
         # Send new order according to the difference between target and pos
         for vt_symbol, target in self.target_data.items():
-            bar: BarData = bars.get(vt_symbol, None)
+            bar: BarData | None = bars.get(vt_symbol, None)
             if not bar:
                 continue
 
             min_volume: float = self.get_min_volume(vt_symbol)
             pos: float = self.get_pos(vt_symbol)
 
-            trading_volume: int = round_to(target - pos, min_volume)
+            trading_volume: float = round_to(target - pos, min_volume)
             if not trading_volume:
                 continue
 
@@ -226,15 +229,15 @@ class StrategyTemplate:
                 short_price: float = round_to(bar.close_price - pricetick * tick_add, pricetick)
                 self.short(vt_symbol, short_price, abs(trading_volume))
 
-    def get_pos(self, vt_symbol: str) -> int:
+    def get_pos(self, vt_symbol: str) -> float:
         """Get current pos of a contract"""
         return self.pos_data.get(vt_symbol, 0)
 
-    def set_target(self, vt_symbol: str, target: int) -> None:
+    def set_target(self, vt_symbol: str, target: float) -> None:
         """Set target pos"""
         self.target_data[vt_symbol] = target
 
-    def get_target(self, vt_symbol: str) -> int:
+    def get_target(self, vt_symbol: str) -> float:
         """Get target pos"""
         return self.target_data.get(vt_symbol, 0)
 
@@ -274,9 +277,12 @@ class StrategyTemplate:
         size: int = 100,
         window: int = 1,
         interval: Interval = Interval.MINUTE,
-        extra_fields: list[str] = None
+        extra_fields: list[str] | None = None
     ) -> DataTable:
         """Create a new DataTable"""
+        if not extra_fields:
+            extra_fields = []
+
         return self.strategy_engine.new_table(
             vt_symbols=vt_symbols,
             size=size,
@@ -292,7 +298,7 @@ class StrategyTemplate:
 
         result: bool = self.strategy_engine.subscribe_data(self, vt_symbol)
         if result:
-            self.vt_symbols.add(vt_symbol)
+            self.vt_symbols.append(vt_symbol)
 
         return result
 
@@ -300,29 +306,50 @@ class StrategyTemplate:
 FieldValue = Union[str, int, float, bool]
 
 
-class StrategyField:
+class StrategyField(Generic[T]):
     """Member value of strategy class"""
 
     def __init__(
         self,
-        value: FieldValue,
-        type: str,
+        value: T,
+        field_type: str,
     ) -> None:
         """"""
-        self.value: FieldValue = value
-        self.type: str = type
+        self.default_value: T = value
+        self.field_type: str = field_type
+        self.name: str = ""
 
     def __set_name__(self, owner: Type[StrategyTemplate], name: str) -> None:
         """Add field name into related list"""
-        if hasattr(owner, self.type):
-            names: list[str] = getattr(owner, self.type)
+        self.name = name
+
+        # Add field name to parameters/variables list
+        if hasattr(owner, self.field_type):
+            names: list[str] = getattr(owner, self.field_type)
         else:
-            names: list[str] = []
-            setattr(owner, self.type, names)
+            names = []
+            setattr(owner, self.field_type, names)
 
         names.append(name)
 
-        setattr(owner, name, self.value)
+    @overload
+    def __get__(self, instance: None, owner: Type[StrategyTemplate]) -> T: ...
+
+    @overload
+    def __get__(self, instance: StrategyTemplate, owner: Type[StrategyTemplate]) -> T: ...
+
+    def __get__(self, instance: StrategyTemplate | None, owner: Type[StrategyTemplate]) -> T:
+        """Get descriptor value"""
+        # Access from class, return default value
+        if instance is None:
+            return self.default_value
+
+        # Access from instance, return instance value or default
+        return instance.__dict__.get(self.name, self.default_value)
+
+    def __set__(self, instance: StrategyTemplate, value: T) -> None:
+        """Set descriptor value"""
+        instance.__dict__[self.name] = value
 
 
 class Parameter(StrategyField):
