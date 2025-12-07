@@ -1,4 +1,4 @@
-from typing import cast
+from typing import cast, Any
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
@@ -65,7 +65,7 @@ class BacktestingEngine:
         self.tables: list[BacktestingDataTable] = []
 
         self.days: int = 0
-        self.history_data: dict[datetime, dict] = defaultdict(dict)
+        self.history_data: defaultdict[datetime, dict[str, BarData]] = defaultdict(dict)
 
         self.limit_order_count: int = 0
         self.limit_orders: dict[str, OrderData] = {}
@@ -74,7 +74,7 @@ class BacktestingEngine:
         self.trade_count: int = 0
         self.trades: dict[str, TradeData] = {}
 
-        self.logs: list = []
+        self.logs: list[str] = []
 
         self.daily_results: dict[date, PortfolioDailyResult] = {}
         self.daily_df: DataFrame | None = None
@@ -84,7 +84,7 @@ class BacktestingEngine:
         interval: Interval,
         start: datetime,
         end: datetime,
-        capital: int,
+        capital: float,
         risk_free: float = 0,
         annual_days: int = 365
     ) -> None:
@@ -114,7 +114,7 @@ class BacktestingEngine:
         self.slippages[vt_symbol] = slippage
         self.min_volumes[vt_symbol] = min_volume
 
-    def add_strategy(self, strategy_class: type[StrategyTemplate], setting: dict) -> None:
+    def add_strategy(self, strategy_class: type[StrategyTemplate], setting: dict[str, Any]) -> None:
         """Add the strategy for backtesting"""
         self.strategy_class = strategy_class
 
@@ -227,8 +227,8 @@ class BacktestingEngine:
             daily_result: PortfolioDailyResult = self.daily_results[d]
             daily_result.add_trade(trade)
 
-        pre_closes: dict = {}
-        start_poses: dict = {}
+        pre_closes: dict[str, float] = {}
+        start_poses: dict[str, float] = {}
 
         for daily_result in self.daily_results.values():
             daily_result.calculate_pnl(
@@ -272,8 +272,8 @@ class BacktestingEngine:
             df = self.daily_df
 
         # Initialize statistics
-        start_date: str = ""
-        end_date: str = ""
+        start_date: date | str = ""
+        end_date: date | str = ""
         total_days: int = 0
         profit_days: int = 0
         loss_days: int = 0
@@ -290,7 +290,7 @@ class BacktestingEngine:
         total_turnover: float = 0
         daily_turnover: float = 0
         total_trade_count: int = 0
-        daily_trade_count: int = 0
+        daily_trade_count: float = 0
         total_return: float = 0
         annual_return: float = 0
         daily_return: float = 0
@@ -303,13 +303,14 @@ class BacktestingEngine:
         # Calculate balance related statistics
         if df is not None:
             df["balance"] = df["net_pnl"].cumsum() + self.capital
-            df["return"] = np.log(df["balance"] / df["balance"].shift(1)).fillna(0)
+            df["return"] = np.log(df["balance"] / df["balance"].shift(1))
+            df["return"].fillna(0, inplace=True)
             df["highlevel"] = df["balance"].rolling(min_periods=1, window=len(df), center=False).max()
             df["drawdown"] = df["balance"] - df["highlevel"]
             df["ddpercent"] = df["drawdown"] / df["highlevel"] * 100
 
             # Check if margin call is raised
-            positive_balance = (df["balance"] > 0).all()
+            positive_balance = cast(bool, (df["balance"] > 0).all())
             if not positive_balance:
                 self.output("Calculation failed due to margin call during backtesting!")
 
@@ -359,7 +360,10 @@ class BacktestingEngine:
             else:
                 sharpe_ratio = 0
 
-            return_drawdown_ratio = -total_net_pnl / max_drawdown
+            if max_drawdown:
+                return_drawdown_ratio = -total_net_pnl / max_drawdown
+            else:
+                return_drawdown_ratio = 0
 
         # Output result
         if output:
@@ -397,7 +401,7 @@ class BacktestingEngine:
             self.output(f"Sharpe Ratio:\t{sharpe_ratio:,.2f}")
             self.output(f"Return Drawdown Ratio:\t{return_drawdown_ratio:,.2f}")
 
-        statistics: dict = {
+        statistics: dict[str, Any] = {
             "start_date": start_date,
             "end_date": end_date,
             "total_days": total_days,
@@ -480,7 +484,7 @@ class BacktestingEngine:
         optimization_setting: OptimizationSetting,
         output: bool = True,
         max_workers: int | None = None
-    ) -> list:
+    ) -> list[tuple[str, float, dict[str, Any]]]:
         """Run brutal force optimization"""
         if not check_optimization_setting(optimization_setting):
             return []
@@ -511,9 +515,9 @@ class BacktestingEngine:
         self,
         optimization_setting: OptimizationSetting,
         max_workers: int | None = None,
-        ngen_size: int = 30,
+        ngen: int = 30,
         output: bool = True
-    ) -> list:
+    ) -> list[tuple[str, float, dict[str, Any]]]:
         """Run genetic algorithm optimization"""
         if not check_optimization_setting(optimization_setting):
             return []
@@ -528,7 +532,7 @@ class BacktestingEngine:
             optimization_setting,
             get_target_value,
             max_workers=max_workers,
-            ngen_size=ngen_size,
+            ngen=ngen,
             output=self.output
         )
 
@@ -570,6 +574,7 @@ class BacktestingEngine:
 
     def _new_bars(self, dt: datetime) -> None:
         """New bars update"""
+        assert self.strategy is not None
         self.datetime = dt
         self.bars = self.history_data[dt]
 
@@ -592,7 +597,7 @@ class BacktestingEngine:
             # Push not traded status update
             if order.status == Status.SUBMITTING:
                 order.status = Status.NOTTRADED
-                self.strategy.update_order(order)
+                self.strategy.update_order(order)       # type: ignore
 
             # Check if order can be crossed
             long_cross: bool = (
@@ -613,7 +618,7 @@ class BacktestingEngine:
             # Push traded status update
             order.traded = order.volume
             order.status = Status.ALLTRADED
-            self.strategy.update_order(order)
+            self.strategy.update_order(order)       # type: ignore
 
             if order.vt_orderid in self.active_limit_orders:
                 self.active_limit_orders.pop(order.vt_orderid)
@@ -639,7 +644,7 @@ class BacktestingEngine:
                 gateway_name=self.gateway_name,
             )
 
-            self.strategy.update_trade(trade)
+            self.strategy.update_trade(trade)       # type: ignore
             self.trades[trade.vt_tradeid] = trade
 
     def new_table(
@@ -715,7 +720,7 @@ class BacktestingEngine:
         order: OrderData = self.active_limit_orders.pop(vt_orderid)
 
         order.status = Status.CANCELLED
-        self.strategy.update_order(order)
+        self.strategy.update_order(order)       # type: ignore
 
     def write_log(self, msg: str, strategy: StrategyTemplate | None     = None) -> None:
         """Write log message"""
@@ -779,7 +784,7 @@ class ContractDailyResult:
         self,
         pre_close: float,
         start_pos: float,
-        size: int,
+        size: float,
         rate: float,
         slippage: float
     ) -> None:
@@ -914,8 +919,8 @@ def load_bar_data(
 
 def evaluate(
     target_name: str,
-    strategy_class: StrategyTemplate,
-    vt_symbols: list[str],
+    strategy_class: type[StrategyTemplate],
+    vt_symbols: set[str],
     interval: Interval,
     start: datetime,
     rates: dict[str, float],
@@ -923,10 +928,10 @@ def evaluate(
     sizes: dict[str, float],
     priceticks: dict[str, float],
     min_volumes: dict[str, float],
-    capital: int,
+    capital: float,
     end: datetime,
-    setting: dict
-) -> tuple:
+    setting: dict[str, Any]
+) -> tuple[str, float, dict[str, Any]]:
     """Wrap the entire bacaktesting process for multiprocessing task"""
     engine: BacktestingEngine = BacktestingEngine()
 
@@ -962,6 +967,11 @@ def evaluate(
 
 def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> Callable:
     """Wrap the entire bacaktesting process for multiprocessing task"""
+    assert engine.strategy_class is not None
+    assert engine.interval is not None
+    assert engine.start is not None
+    assert engine.end is not None
+
     func: Callable = partial(
         evaluate,
         target_name,
@@ -980,6 +990,6 @@ def wrap_evaluate(engine: BacktestingEngine, target_name: str) -> Callable:
     return func
 
 
-def get_target_value(result: list) -> float:
+def get_target_value(result: tuple) -> float:
     """Get target value of optimization"""
     return cast(float, result[1])

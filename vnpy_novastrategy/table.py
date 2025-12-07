@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -18,7 +19,7 @@ class DataTable:
         size: int = 100,
         window: int = 1,
         interval: Interval = Interval.MINUTE,
-        extra_fields: list[str] = None
+        extra_fields: list[str] | None = None
     ) -> None:
         """"""
         self.vt_symbols: list[str] = vt_symbols
@@ -26,11 +27,11 @@ class DataTable:
         self.window: int = window
         self.interval: Interval = interval
 
-        if not extra_fields:
+        if extra_fields is None:
             extra_fields = []
         self.extra_fields: list[str] = extra_fields
 
-        self.df: pd.DataFrame = None
+        self.df: pd.DataFrame | None = None
         self.ix: int = 0
         self.inited: bool = False
         self.periods: int = size * 100
@@ -58,11 +59,11 @@ class DataTable:
 
     def get_df(self) -> pd.DataFrame | None:
         """Get current dataframe"""
-        pass
+        raise NotImplementedError()
 
     def update_bars(self, bars: dict[str, BarData]) -> bool:
         """Update bars data into table"""
-        pass
+        raise NotImplementedError()
 
 
 class LiveDataTable(DataTable):
@@ -80,15 +81,18 @@ class LiveDataTable(DataTable):
         size: int = 100,
         window: int = 1,
         interval: Interval = Interval.MINUTE,
-        extra_fields: list[str] = None
+        extra_fields: list[str] | None = None
     ) -> None:
         """"""
         super().__init__(vt_symbols, size, window, interval, extra_fields)
 
+
+    def update_bars(self, bars: dict[str, BarData]) -> bool:
+        """"""
         if self.agg_window > 1:
-            self.update_bars = self._update_minute_bars
+            return self._update_minute_bars(bars)
         else:
-            self.update_bars = self._update_window_bars
+            return self._update_window_bars(bars)
 
     def _update_minute_bars(self, bars: dict[str, BarData]) -> bool:
         """Update minute bars to aggregate window bars"""
@@ -96,12 +100,12 @@ class LiveDataTable(DataTable):
 
         for vt_symbol, bar in bars.items():
             bg: DataAggregator = self.aggregators[vt_symbol]
-            window_bar: BarData = bg.update_bar(bar)
+            window_bar: BarData | None = bg.update_bar(bar)
             if window_bar:
                 window_bars[vt_symbol] = window_bar
 
         if window_bars:
-            self._update_window_bars(bars)
+            self._update_window_bars(window_bars)
             return self.inited
         else:
             return False
@@ -115,6 +119,7 @@ class LiveDataTable(DataTable):
             self._reset_df(bars)
 
         # Update data into DF
+        assert self.df is not None
         df: pd.DataFrame = self.df
 
         for bar in bars.values():
@@ -129,7 +134,9 @@ class LiveDataTable(DataTable):
             ]
 
             for field in self.extra_fields:
-                value: object = bar.extra.get(field, None)
+                value: object = None
+                if bar.extra:
+                    value = bar.extra.get(field, None)
                 data.append(value)
 
             df.loc[(bar.datetime, bar.vt_symbol)] = data
@@ -179,19 +186,21 @@ class LiveDataTable(DataTable):
 
     def _reset_df(self, bars: dict[str, BarData]) -> None:
         """Reset dataFrame"""
+        assert self.df is not None
         old_df: pd.DataFrame = self.df
-        dt_index: pd.DatetimeIndex = old_df.index.levels[0]
+        assert isinstance(old_df.index, pd.MultiIndex)
+        dt_levels: pd.DatetimeIndex = cast(pd.DatetimeIndex, old_df.index.levels[0])
 
-        start: pd.Timestamp = dt_index[-self.size]
+        start: pd.Timestamp = dt_levels[-self.size]
 
-        dt_index: pd.DatetimeIndex = pd.date_range(
+        new_dt_index: pd.DatetimeIndex = pd.date_range(
             start=start,
             periods=self.periods,
             freq=self.interval_freq_map[self.interval]
         )
 
         multi_index: pd.MultiIndex = pd.MultiIndex.from_product(
-            [dt_index, self.vt_symbols],
+            [new_dt_index, self.vt_symbols],
             names=["datetime", "vt_symbol"]
         )
 
@@ -243,7 +252,7 @@ class BacktestingDataTable(DataTable):
         size: int = 100,
         window: int = 1,
         interval: Interval = Interval.MINUTE,
-        extra_fields: list[str] = None
+        extra_fields: list[str] | None = None
     ) -> None:
         """"""
         super().__init__(vt_symbols, size, window, interval, extra_fields)
@@ -251,7 +260,7 @@ class BacktestingDataTable(DataTable):
         self.symbol_count: int = len(self.vt_symbols)
 
         self.window_ends: list[datetime] = []
-        self.next_end: datetime = None
+        self.next_end: datetime | None = None
 
     def update_bars(self, bars: dict[str, BarData]) -> bool:
         """Update bars data into table"""
@@ -286,7 +295,7 @@ class BacktestingDataTable(DataTable):
 
                 for vt_symbol, bar in bars.items():
                     bg: DataAggregator = self.aggregators[vt_symbol]
-                    window_bar: BarData = bg.update_bar(bar)
+                    window_bar: BarData | None = bg.update_bar(bar)
                     if window_bar:
                         window_bars[vt_symbol] = window_bar
 
@@ -316,7 +325,10 @@ class BacktestingDataTable(DataTable):
                 }
 
                 for field in self.extra_fields:
-                    d[field] = bar.extra.get(field, None)
+                    value: object = None
+                    if bar.extra:
+                        value = bar.extra.get(field, None)
+                    d[field] = value
 
                 records.append(d)
 
@@ -354,7 +366,7 @@ class DataAggregator:
     def __init__(self, agg_window: int) -> None:
         """Constructor"""
         self.agg_window: int = agg_window
-        self.window_bar: BarData = None
+        self.window_bar: BarData | None = None
 
     def update_bar(self, bar: BarData) -> BarData | None:
         """Update 1 minute bar into aggregator"""
@@ -370,7 +382,6 @@ class DataAggregator:
                 high_price=bar.high_price,
                 low_price=bar.low_price
             )
-            self.window_bar.extra = {}
         # Otherwise, update high/low price into window bar
         else:
             self.window_bar.high_price = max(
@@ -383,6 +394,7 @@ class DataAggregator:
             )
 
         # Update close price/volume/turnover into window bar
+        assert self.window_bar
         self.window_bar.close_price = bar.close_price
         self.window_bar.volume += bar.volume
         self.window_bar.turnover += bar.turnover
@@ -390,12 +402,15 @@ class DataAggregator:
 
         # Sum up extra fields
         if bar.extra:
+            if self.window_bar.extra is None:
+                self.window_bar.extra = {}
+
             for k, v in bar.extra.items():
                 window_v: float = self.window_bar.extra.get(k, 0) + v
                 self.window_bar.extra[k] = window_v
 
         # Check if window bar completed
-        window_bar: BarData = None
+        window_bar: BarData | None = None
 
         minute_passed: int = bar.datetime.hour * 60 + bar.datetime.minute
         if not (minute_passed + 1) % self.agg_window:

@@ -214,14 +214,20 @@ class StrategyTemplate:
             if not bar:
                 continue
 
-            min_volume: float = self.get_min_volume(vt_symbol)
-            pos: float = self.get_pos(vt_symbol)
+            min_volume: float | None = self.get_min_volume(vt_symbol)
+            if not min_volume:
+                self.write_log(f"Execute trading failed for {vt_symbol}: Min volume not found")
+                continue
 
+            pricetick: float | None = self.get_pricetick(vt_symbol)
+            if not pricetick:
+                self.write_log(f"Execute trading failed for {vt_symbol}: Pricetick not found")
+                continue
+
+            pos: float = self.get_pos(vt_symbol)
             trading_volume: float = round_to(target - pos, min_volume)
             if not trading_volume:
                 continue
-
-            pricetick: float = self.get_pricetick(vt_symbol)
 
             if trading_volume > 0:
                 buy_price: float = round_to(bar.close_price + pricetick * tick_add, pricetick)
@@ -246,15 +252,15 @@ class StrategyTemplate:
         """Write log"""
         self.strategy_engine.write_log(msg, self)
 
-    def get_pricetick(self, vt_symbol: str) -> float:
+    def get_pricetick(self, vt_symbol: str) -> float | None:
         """Get pricetick of a contract"""
         return self.strategy_engine.get_pricetick(self, vt_symbol)
 
-    def get_size(self, vt_symbol: str) -> float:
+    def get_size(self, vt_symbol: str) -> float | None:
         """Get size of a contract"""
         return self.strategy_engine.get_size(self, vt_symbol)
 
-    def get_min_volume(self, vt_symbol: str) -> float:
+    def get_min_volume(self, vt_symbol: str) -> float | None:
         """Get min volume of a contract"""
         return self.strategy_engine.get_min_volume(self, vt_symbol)
 

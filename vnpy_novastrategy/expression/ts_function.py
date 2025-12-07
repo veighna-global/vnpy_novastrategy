@@ -20,7 +20,7 @@ def ts_max(x: pd.Series, window: int) -> pd.Series:
 
 def ts_delay(x: pd.Series, window: int) -> pd.Series:
     """时序滚动窗口固定时间之前的值"""
-    return x.shift(window).values
+    return x.shift(window)
 
 
 def ts_delta(x: pd.Series, window: int) -> pd.Series:

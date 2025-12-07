@@ -20,9 +20,4 @@ ta_roc = talib.ROC
 
 def ta_atr(high: pd.Series, low: pd.Series, close: pd.Series, window: int = 14) -> pd.Series:
     """Calculate ATR"""
-    return talib.ATR(
-        high.fillna(0),
-        low.fillna(0),
-        close.fillna(0),
-        window
-    )
+    return talib.ATR(high.fillna(0), low.fillna(0), close.fillna(0), window)    # type: ignore

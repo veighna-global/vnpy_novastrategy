@@ -152,8 +152,8 @@ class StrategyEngine(BaseEngine):
             self.write_log(f"Failed to send order, contract not found: {vt_symbol}", strategy)
             return ""
 
-        price: float = round_to(price, contract.pricetick)
-        volume: float = round_to(volume, contract.min_volume)
+        price = round_to(price, contract.pricetick)
+        volume = round_to(volume, contract.min_volume)
 
         req: OrderRequest = OrderRequest(
             symbol=contract.symbol,
@@ -181,7 +181,7 @@ class StrategyEngine(BaseEngine):
         req: CancelRequest = order.create_cancel_request()
         self.main_engine.cancel_order(req, order.gateway_name)
 
-    def get_pricetick(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
+    def get_pricetick(self, strategy: StrategyTemplate, vt_symbol: str) -> float | None:
         """Get contract pricetick"""
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
@@ -190,7 +190,7 @@ class StrategyEngine(BaseEngine):
         else:
             return None
 
-    def get_size(self, strategy: StrategyTemplate, vt_symbol: str) -> int:
+    def get_size(self, strategy: StrategyTemplate, vt_symbol: str) -> float | None:
         """Get contract size"""
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
@@ -199,7 +199,7 @@ class StrategyEngine(BaseEngine):
         else:
             return None
 
-    def get_min_volume(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
+    def get_min_volume(self, strategy: StrategyTemplate, vt_symbol: str) -> float | None:
         """Get min volume of a contract"""
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
@@ -228,8 +228,7 @@ class StrategyEngine(BaseEngine):
     def load_bars(self, strategy: StrategyTemplate, days: int, interval: Interval) -> None:
         """Load history bar data for portfolio"""
         vt_symbols: list = strategy.vt_symbols
-        dts: set[datetime] = set()
-        history_data: dict[str, dict] = defaultdict(dict)
+        history_data: dict[datetime, dict] = defaultdict(dict)
 
         # Load bar data from gateway
         for vt_symbol in vt_symbols:
@@ -254,6 +253,8 @@ class StrategyEngine(BaseEngine):
         start: datetime = end - timedelta(days)
 
         contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
+        if not contract:
+            return []
 
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
@@ -292,7 +293,7 @@ class StrategyEngine(BaseEngine):
             self.write_log(f"Add strategy failed, name already exists: {strategy_name}.")
             return
 
-        strategy_class: StrategyTemplate | None = self.classes.get(class_name, None)
+        strategy_class: type[StrategyTemplate] | None = self.classes.get(class_name, None)
         if not strategy_class:
             self.write_log(f"Add strategy failed, strategy class not found: {class_name}.")
             return
@@ -403,7 +404,7 @@ class StrategyEngine(BaseEngine):
         strategy: StrategyTemplate = self.strategies[strategy_name]
         if strategy.trading:
             self.write_log(f"Remove strategy failed, please stop {strategy.strategy_name} first.")
-            return
+            return False
 
         for vt_symbol in strategy.vt_symbols:
             strategies: list = self.symbol_strategy_map[vt_symbol]
@@ -471,7 +472,7 @@ class StrategyEngine(BaseEngine):
 
     def get_strategy_class_parameters(self, class_name: str) -> dict:
         """Get default parameters of a strategy class"""
-        strategy_class: StrategyTemplate = self.classes[class_name]
+        strategy_class: type[StrategyTemplate] = self.classes[class_name]
 
         parameters: dict = {}
         for name in strategy_class.parameters:
@@ -479,7 +480,7 @@ class StrategyEngine(BaseEngine):
 
         return parameters
 
-    def get_strategy_parameters(self, strategy_name) -> dict:
+    def get_strategy_parameters(self, strategy_name: str) -> dict:
         """Get parameters of a strategy instance"""
         strategy: StrategyTemplate = self.strategies[strategy_name]
         return strategy.get_parameters()
@@ -530,10 +531,10 @@ class StrategyEngine(BaseEngine):
         event: Event = Event(EVENT_NOVA_STRATEGY, data)
         self.event_engine.put(event)
 
-    def write_log(self, msg: str, strategy: StrategyTemplate = None) -> None:
+    def write_log(self, msg: str, strategy: StrategyTemplate | None = None) -> None:
         """Write log message"""
         if strategy:
-            msg: str = f"{strategy.strategy_name}: {msg}"
+            msg = f"{strategy.strategy_name}: {msg}"
 
         log: LogData = LogData(msg=msg, gateway_name=APP_NAME)
         event: Event = Event(type=EVENT_NOVA_LOG, data=log)
