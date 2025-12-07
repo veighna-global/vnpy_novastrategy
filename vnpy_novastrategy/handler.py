@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 from datetime import datetime
 
 from vnpy.trader.object import BarData, TickData
@@ -18,11 +18,14 @@ class TickHandler:
         self.on_bars: Callable[[dict[str, BarData]], None] = on_bars
 
         self.last_bars: dict[str, BarData] = {}
-        self.closed_dt: datetime = None
+        self.closed_dt: datetime | None = None
 
     def update_tick(self, tick: TickData) -> None:
         """Update new tick data"""
-        bar: BarData = tick.extra.get("bar", None)
+        if not tick.extra:
+            return
+
+        bar: BarData | None = tick.extra.get("bar", None)
         if not bar:
             return
 

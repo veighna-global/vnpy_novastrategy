@@ -1,4 +1,4 @@
-from typing import Union, Type, TYPE_CHECKING, TypeVar, Generic, overload
+from typing import TYPE_CHECKING, TypeVar, Generic, overload
 from collections import defaultdict
 
 from vnpy.trader.constant import Interval, Direction, Offset
@@ -29,7 +29,7 @@ class StrategyTemplate:
         """
         Normally no need to call this __init__ when implementing a strategy.
         """
-        self.strategy_engine: "StrategyEngine" = strategy_engine
+        self.strategy_engine: StrategyEngine = strategy_engine
 
         self.strategy_name: str = strategy_name
         self.vt_symbols: list[str] = vt_symbols
@@ -303,7 +303,7 @@ class StrategyTemplate:
         return result
 
 
-FieldValue = Union[str, int, float, bool]
+FieldValue = str | int | float | bool
 
 
 class StrategyField(Generic[T]):
@@ -319,7 +319,7 @@ class StrategyField(Generic[T]):
         self.field_type: str = field_type
         self.name: str = ""
 
-    def __set_name__(self, owner: Type[StrategyTemplate], name: str) -> None:
+    def __set_name__(self, owner: type[StrategyTemplate], name: str) -> None:
         """Add field name into related list"""
         self.name = name
 
@@ -333,12 +333,12 @@ class StrategyField(Generic[T]):
         names.append(name)
 
     @overload
-    def __get__(self, instance: None, owner: Type[StrategyTemplate]) -> T: ...
+    def __get__(self, instance: None, owner: type[StrategyTemplate]) -> T: ...
 
     @overload
-    def __get__(self, instance: StrategyTemplate, owner: Type[StrategyTemplate]) -> T: ...
+    def __get__(self, instance: StrategyTemplate, owner: type[StrategyTemplate]) -> T: ...
 
-    def __get__(self, instance: StrategyTemplate | None, owner: Type[StrategyTemplate]) -> T:
+    def __get__(self, instance: StrategyTemplate | None, owner: type[StrategyTemplate]) -> T:
         """Get descriptor value"""
         # Access from class, return default value
         if instance is None:

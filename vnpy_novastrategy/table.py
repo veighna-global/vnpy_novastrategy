@@ -1,4 +1,3 @@
-from typing import Optional
 from datetime import datetime
 
 import numpy as np
@@ -57,7 +56,7 @@ class DataTable:
         """Add feature expression for querying df"""
         self.feature_expressions[name] = expression
 
-    def get_df(self) -> Optional[pd.DataFrame]:
+    def get_df(self) -> pd.DataFrame | None:
         """Get current dataframe"""
         pass
 
@@ -218,7 +217,7 @@ class LiveDataTable(DataTable):
 
         self.ix = self.size
 
-    def get_df(self) -> Optional[pd.DataFrame]:
+    def get_df(self) -> pd.DataFrame | None:
         """Get current dataframe"""
         if self.df is None:
             return None
@@ -336,7 +335,7 @@ class BacktestingDataTable(DataTable):
         self.inited = True
         self.df = df
 
-    def get_df(self) -> Optional[pd.DataFrame]:
+    def get_df(self) -> pd.DataFrame | None:
         """Get current dataframe"""
         if self.df is None:
             return None
@@ -357,7 +356,7 @@ class DataAggregator:
         self.agg_window: int = agg_window
         self.window_bar: BarData = None
 
-    def update_bar(self, bar: BarData) -> Optional[BarData]:
+    def update_bar(self, bar: BarData) -> BarData | None:
         """Update 1 minute bar into aggregator"""
         # If not inited, create window bar object
         if not self.window_bar:

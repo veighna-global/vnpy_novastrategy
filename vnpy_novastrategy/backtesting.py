@@ -1,7 +1,6 @@
 from collections import defaultdict
 from collections.abc import Callable
 from datetime import date, datetime, timedelta
-from typing import Optional
 from functools import lru_cache, partial
 from pathlib import Path
 import traceback
@@ -168,7 +167,7 @@ class BacktestingEngine:
         day_count: int = 0
         ix: int = 0
 
-        for ix, dt in enumerate(dts):
+        for ix, dt in enumerate(dts):       # noqa
             if self.datetime and dt.day != self.datetime.day:
                 day_count += 1
                 if day_count >= self.days:
@@ -544,7 +543,7 @@ class BacktestingEngine:
         for bar in bars.values():
             close_prices[bar.vt_symbol] = bar.close_price
 
-        daily_result: Optional[PortfolioDailyResult] = self.daily_results.get(d, None)
+        daily_result: PortfolioDailyResult | None = self.daily_results.get(d, None)
 
         if daily_result:
             daily_result.update_close_prices(close_prices)
@@ -873,7 +872,7 @@ class PortfolioDailyResult:
         self.close_prices.update(close_prices)
 
         for vt_symbol, close_price in close_prices.items():
-            contract_result: Optional[ContractDailyResult] = self.contract_results.get(vt_symbol, None)
+            contract_result: ContractDailyResult | None = self.contract_results.get(vt_symbol, None)
             if contract_result:
                 contract_result.update_close_price(close_price)
             else:

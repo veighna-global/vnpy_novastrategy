@@ -4,7 +4,7 @@ import traceback
 from collections import defaultdict
 from pathlib import Path
 from types import ModuleType
-from typing import Type, Callable, Optional
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor
 
@@ -57,7 +57,7 @@ class StrategyEngine(BaseEngine):
 
         self.strategy_data: dict[str, dict] = {}
 
-        self.classes: dict[str, Type[StrategyTemplate]] = {}
+        self.classes: dict[str, type[StrategyTemplate]] = {}
         self.strategies: dict[str, StrategyTemplate] = {}
 
         self.symbol_strategy_map: dict[str, list[StrategyTemplate]] = defaultdict(list)
@@ -103,7 +103,7 @@ class StrategyEngine(BaseEngine):
         """Process order data event"""
         order: OrderData = event.data
 
-        strategy: Optional[StrategyTemplate] = self.orderid_strategy_map.get(order.vt_orderid, None)
+        strategy: StrategyTemplate | None = self.orderid_strategy_map.get(order.vt_orderid, None)
         if not strategy:
             return
 
@@ -118,7 +118,7 @@ class StrategyEngine(BaseEngine):
             return
         self.vt_tradeids.add(trade.vt_tradeid)
 
-        strategy: Optional[StrategyTemplate] = self.orderid_strategy_map.get(trade.vt_orderid, None)
+        strategy: StrategyTemplate | None = self.orderid_strategy_map.get(trade.vt_orderid, None)
         if not strategy:
             return
 
@@ -147,7 +147,7 @@ class StrategyEngine(BaseEngine):
         volume: float,
     ) -> str:
         """Send new order"""
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
         if not contract:
             self.write_log(f"Failed to send order, contract not found: {vt_symbol}", strategy)
             return ""
@@ -173,7 +173,7 @@ class StrategyEngine(BaseEngine):
 
     def cancel_order(self, strategy: StrategyTemplate, vt_orderid: str) -> None:
         """Cancel existing order"""
-        order: Optional[OrderData] = self.main_engine.get_order(vt_orderid)
+        order: OrderData | None = self.main_engine.get_order(vt_orderid)
         if not order:
             self.write_log(f"Failed to cancel order, order not found: {vt_orderid}", strategy)
             return
@@ -183,7 +183,7 @@ class StrategyEngine(BaseEngine):
 
     def get_pricetick(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
         """Get contract pricetick"""
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         if contract:
             return contract.pricetick
@@ -192,7 +192,7 @@ class StrategyEngine(BaseEngine):
 
     def get_size(self, strategy: StrategyTemplate, vt_symbol: str) -> int:
         """Get contract size"""
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         if contract:
             return contract.size
@@ -201,7 +201,7 @@ class StrategyEngine(BaseEngine):
 
     def get_min_volume(self, strategy: StrategyTemplate, vt_symbol: str) -> float:
         """Get min volume of a contract"""
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         if contract:
             return contract.min_volume
@@ -253,7 +253,7 @@ class StrategyEngine(BaseEngine):
         end: datetime = datetime.now(DB_TZ)
         start: datetime = end - timedelta(days)
 
-        contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+        contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
 
         req: HistoryRequest = HistoryRequest(
             symbol=symbol,
@@ -292,7 +292,7 @@ class StrategyEngine(BaseEngine):
             self.write_log(f"Add strategy failed, name already exists: {strategy_name}.")
             return
 
-        strategy_class: Optional[StrategyTemplate] = self.classes.get(class_name, None)
+        strategy_class: StrategyTemplate | None = self.classes.get(class_name, None)
         if not strategy_class:
             self.write_log(f"Add strategy failed, strategy class not found: {class_name}.")
             return
@@ -325,21 +325,21 @@ class StrategyEngine(BaseEngine):
         self._call_strategy_func(strategy, strategy.on_init)
 
         # Restore strategy variables
-        data: Optional[dict] = self.strategy_data.get(strategy_name, None)
+        data: dict | None = self.strategy_data.get(strategy_name, None)
         if data:
             pos_data: dict = data.get("pos_data", {})
             strategy.pos_data.update(pos_data)
 
             variables: dict = data.get("variables", {})
             for name in strategy.variables:
-                value: Optional[object] = variables.get(name, None)
+                value: object | None = variables.get(name, None)
                 if value is None:
                     continue
                 setattr(strategy, name, value)
 
         # Subscribe market data
         for vt_symbol in strategy.vt_symbols:
-            contract: Optional[ContractData] = self.main_engine.get_contract(vt_symbol)
+            contract: ContractData | None = self.main_engine.get_contract(vt_symbol)
             if contract:
                 req: SubscribeRequest = SubscribeRequest(symbol=contract.symbol, exchange=contract.exchange)
                 self.main_engine.subscribe(req, contract.gateway_name)
