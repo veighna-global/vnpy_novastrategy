@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, TypeVar, Generic, overload
+from typing import TYPE_CHECKING, TypeVar, Generic, overload, cast
 from collections import defaultdict
 
 from vnpy.trader.constant import Interval, Direction, Offset
@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from .engine import StrategyEngine
 
 
-T = TypeVar("T", int, float, str, bool)
+FieldValue = TypeVar("FieldValue", int, float, str, bool)
 
 
 class StrategyTemplate:
@@ -303,20 +303,17 @@ class StrategyTemplate:
         return result
 
 
-FieldValue = str | int | float | bool
-
-
-class StrategyField(Generic[T]):
+class StrategyField(Generic[FieldValue]):
     """Member value of strategy class"""
+
+    field_type: str = ""
 
     def __init__(
         self,
-        value: T,
-        field_type: str,
+        value: FieldValue
     ) -> None:
         """"""
-        self.default_value: T = value
-        self.field_type: str = field_type
+        self.default_value: FieldValue = value
         self.name: str = ""
 
     def __set_name__(self, owner: type[StrategyTemplate], name: str) -> None:
@@ -333,36 +330,32 @@ class StrategyField(Generic[T]):
         names.append(name)
 
     @overload
-    def __get__(self, instance: None, owner: type[StrategyTemplate]) -> T: ...
+    def __get__(self, instance: None, owner: type[StrategyTemplate]) -> FieldValue: ...
 
     @overload
-    def __get__(self, instance: StrategyTemplate, owner: type[StrategyTemplate]) -> T: ...
+    def __get__(self, instance: StrategyTemplate, owner: type[StrategyTemplate]) -> FieldValue: ...
 
-    def __get__(self, instance: StrategyTemplate | None, owner: type[StrategyTemplate]) -> T:
+    def __get__(self, instance: StrategyTemplate | None, owner: type[StrategyTemplate]) -> FieldValue:
         """Get descriptor value"""
         # Access from class, return default value
         if instance is None:
             return self.default_value
 
         # Access from instance, return instance value or default
-        return instance.__dict__.get(self.name, self.default_value)
+        return cast(FieldValue, instance.__dict__.get(self.name, self.default_value))
 
-    def __set__(self, instance: StrategyTemplate, value: T) -> None:
+    def __set__(self, instance: StrategyTemplate, value: FieldValue) -> None:
         """Set descriptor value"""
         instance.__dict__[self.name] = value
 
 
-class Parameter(StrategyField):
+class Parameter(StrategyField[FieldValue]):
     """Strategy parameter member"""
 
-    def __init__(self, value: FieldValue) -> None:
-        """"""
-        super().__init__(value, "parameters")
+    field_type: str = "parameters"
 
 
-class Variable(StrategyField):
+class Variable(StrategyField[FieldValue]):
     """Strategy variable member"""
 
-    def __init__(self, value: FieldValue) -> None:
-        """"""
-        super().__init__(value, "variables")
+    field_type: str = "variables"

@@ -28,7 +28,7 @@ def calculate_by_expression(df: pd.DataFrame, expression: str) -> pd.Series:
     for column in df.columns:
         d[column] = df[column]
 
-    feature = eval(expression, None, d)
+    feature: pd.Series = eval(expression, None, d)
 
     return feature
 

@@ -1,3 +1,5 @@
+from typing import cast
+
 from vnpy_novastrategy import (
     StrategyTemplate,
     BarData, TickData,
@@ -13,16 +15,16 @@ class SmaStrategy(StrategyTemplate):
 
     author: str = "VeighNa Global"
 
-    fast_window: int = Parameter(5)
-    slow_window: int = Parameter(20)
-    trading_size: int = Parameter(1)
-    test: bool = Parameter(False)
+    fast_window: Parameter[int] = Parameter(5)
+    slow_window: Parameter[int] = Parameter(20)
+    trading_size: Parameter[int] = Parameter(1)
+    test: Parameter[bool] = Parameter(False)
 
-    trading_symbol: str = Variable("")
-    fast_ma: float = Variable(0)
-    slow_ma: float = Variable(0)
-    trading_target: float = Variable(0)
-    trading_pos: float = Variable(0)
+    trading_symbol: Variable[str] = Variable("")
+    fast_ma: Variable[float] = Variable(0)
+    slow_ma: Variable[float] = Variable(0)
+    trading_target: Variable[float] = Variable(0)
+    trading_pos: Variable[float] = Variable(0)
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
@@ -72,15 +74,15 @@ class SmaStrategy(StrategyTemplate):
         if not self.am.inited:
             return
 
-        self.fast_ma = self.am.sma(self.fast_window)
-        self.slow_ma = self.am.sma(self.slow_window)
+        self.fast_ma = cast(float, self.am.sma(self.fast_window))
+        self.slow_ma = cast(float, self.am.sma(self.slow_window))
 
         if self.fast_ma > self.slow_ma:
             self.trading_target = self.trading_size
         else:
             self.trading_target = -self.trading_size
 
-        trading_volume: int = self.trading_target - self.trading_pos
+        trading_volume: float = self.trading_target - self.trading_pos
 
         if trading_volume > 0:
             self.buy(self.trading_symbol, bar.close_price * 1.01, abs(trading_volume))
