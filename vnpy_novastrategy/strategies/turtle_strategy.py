@@ -1,11 +1,12 @@
-from vnpy.trader.utility import round_to
+from typing import cast
 
 from vnpy_novastrategy import (
     StrategyTemplate,
     BarData, TickData,
     TradeData, OrderData,
     ArrayManager, BarGenerator,
-    Interval, datetime
+    Interval, datetime,
+    Parameter, Variable, round_to
 )
 
 
@@ -14,47 +15,29 @@ class TurtleStrategy(StrategyTemplate):
 
     author: str = "VeighNa Global"
 
-    entry_window: int = 30
-    exit_window: int = 9
-    atr_window: int = 14
-    risk_level: float = 5000
+    entry_window: Parameter[int] = Parameter(30)
+    exit_window: Parameter[int] = Parameter(9)
+    atr_window: Parameter[int] = Parameter(14)
+    risk_level: Parameter[float] = Parameter(5000.0)
 
-    trading_size: float = 0.0
-    trading_target: float = 0.0
-    trading_pos: float = 0.0
-    entry_up: float = 0.0
-    entry_down: float = 0.0
-    exit_up: float = 0.0
-    exit_down: float = 0.0
-    atr_value: float = 0.0
-    long_entry: float = 0.0
-    short_entry: float = 0.0
-    long_stop: float = 0.0
-    short_stop: float = 0.0
-
-    parameters = [
-        "entry_window",
-        "exit_window",
-        "atr_window",
-        "risk_level"
-    ]
-    variables = [
-        "trading_size",
-        "trading_target",
-        "trading_pos",
-        "entry_up",
-        "entry_down",
-        "exit_up",
-        "exit_down",
-        "trading_size",
-        "atr_value"
-    ]
+    trading_size: Variable[float] = Variable(0.0)
+    trading_target: Variable[float] = Variable(0.0)
+    trading_pos: Variable[float] = Variable(0.0)
+    entry_up: Variable[float] = Variable(0.0)
+    entry_down: Variable[float] = Variable(0.0)
+    exit_up: Variable[float] = Variable(0.0)
+    exit_down: Variable[float] = Variable(0.0)
+    atr_value: Variable[float] = Variable(0.0)
+    long_entry: Variable[float] = Variable(0.0)
+    short_entry: Variable[float] = Variable(0.0)
+    long_stop: Variable[float] = Variable(0.0)
+    short_stop: Variable[float] = Variable(0.0)
 
     def on_init(self) -> None:
         """Callback when strategy is inited"""
         self.trading_symbol: str = self.vt_symbols[0]
 
-        self.bar_dt: datetime = None
+        self.bar_dt: datetime | None = None
 
         self.bg: BarGenerator = BarGenerator(
             on_bar=lambda bar: None,
@@ -79,7 +62,10 @@ class TurtleStrategy(StrategyTemplate):
 
     def on_tick(self, tick: TickData) -> None:
         """Callback of tick data update"""
-        bar: BarData = tick.extra.get("bar", None)
+        if not tick.extra:
+            return
+
+        bar: BarData | None = tick.extra.get("bar", None)
         if not bar:
             return
 
@@ -102,7 +88,7 @@ class TurtleStrategy(StrategyTemplate):
             return
 
         if not self.trading_target:
-            self.atr_value = self.am.atr(self.atr_window)
+            self.atr_value = cast(float, self.am.atr(self.atr_window))
             self.trading_size = round(self.risk_level / self.atr_value, 2)
 
             if bar.high_price >= self.entry_up:
@@ -116,8 +102,8 @@ class TurtleStrategy(StrategyTemplate):
             if bar.high_price >= self.exit_up:
                 self.trading_target = 0
 
-        trading_volume: int = self.trading_target - self.trading_pos
-        pricetick: float = self.get_pricetick(self.trading_symbol)
+        trading_volume: float = self.trading_target - self.trading_pos
+        pricetick: float = cast(float, self.get_pricetick(self.trading_symbol))
 
         if trading_volume > 0:
             buy_price: float = round_to(bar.close_price * 1.01, pricetick)
@@ -134,8 +120,13 @@ class TurtleStrategy(StrategyTemplate):
         if not self.am.inited:
             return
 
-        self.entry_up, self.entry_down = self.am.donchian(self.entry_window)
-        self.exit_up, self.exit_down = self.am.donchian(self.exit_window)
+        entry_result = self.am.donchian(self.entry_window)
+        self.entry_up = float(entry_result[0])
+        self.entry_down = float(entry_result[1])
+
+        exit_result = self.am.donchian(self.exit_window)
+        self.exit_up = float(exit_result[0])
+        self.exit_down = float(exit_result[1])
 
     def on_trade(self, trade: TradeData) -> None:
         """Callback of trade update"""

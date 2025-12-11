@@ -36,10 +36,10 @@ if __name__ == "__main__":
     sleep(10)
 
     req = HistoryRequest(
-        symbol="BTCUSDT_SWAP_BINANCE",
+        symbol="ETHUSDT_SWAP_BINANCE",
         exchange=Exchange.GLOBAL,
         interval=Interval.MINUTE,
-        start=datetime(2025, 12, 4, tzinfo=DB_TZ),
+        start=datetime(2025, 1, 1, tzinfo=DB_TZ),
         end=datetime(2025, 12, 31, tzinfo=DB_TZ)
     )
     bars = gateway.query_history(req)
